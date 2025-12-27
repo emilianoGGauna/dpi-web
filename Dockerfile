@@ -1,39 +1,41 @@
 # ============================
-# 1️⃣ BUILD STAGE – Node
+# 1️⃣ BUILD STAGE – Node + Vite
 # ============================
 FROM node:18 AS builder
 
-# Set working directory
+# Working directory
 WORKDIR /app
 
-# Copy package files
+# Install dependencies
 COPY package*.json ./
-
-# Install all dependencies
 RUN npm install
 
-# Copy project files
+# Copy all project files
 COPY . .
 
-# Build for production
+# Build production bundle
 RUN npm run build
+
 
 # ============================
 # 2️⃣ PRODUCTION STAGE – NGINX
 # ============================
 FROM nginx:stable-alpine
 
-# Remove default nginx static files
+# Cloud Run requires listening on $PORT (default 8080)
+ENV PORT=8080
+
+# Remove default nginx files
 RUN rm -rf /usr/share/nginx/html/*
 
-# Copy built React app to Nginx
+# Copy build output
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy a custom nginx config (optional but recommended)
+# Replace default Nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 80
-EXPOSE 80
+# Expose Cloud Run port
+EXPOSE 8080
 
-# Run Nginx
+# Start NGINX
 CMD ["nginx", "-g", "daemon off;"]
