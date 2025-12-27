@@ -1,16 +1,122 @@
-# React + Vite
+# DPI – Diseño Planeación Integral  
+### Sitio Web Corporativo – React + Vite + TailwindCSS
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este repositorio contiene el código del sitio web oficial de **DPI – Diseño Planeación Integral**, desarrollado con **React**, **Vite** y **TailwindCSS**, totalmente optimizado para rendimiento, SEO y despliegue profesional.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Tecnologías Utilizadas
 
-## React Compiler
+- **React 18**
+- **Vite**
+- **TailwindCSS**
+- **Lucide Icons**
+- **Modo Oscuro / Claro**
+- **GitHub Actions (CI/CD opcional)**
+- **Google Cloud (Deploy opcional)**
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🌗 Modo Oscuro / Claro
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Incluye un switch interactivo completamente funcional que permite alternar entre modo claro y oscuro, recordando la preferencia del usuario mediante `localStorage`.
+
+---
+
+## 📂 Estructura del Proyecto
+
+```
+web_page/
+├── index.html
+├── package.json
+├── vite.config.js
+├── tailwind.config.js
+├── postcss.config.js
+├── src/
+│   ├── main.jsx
+│   ├── App.jsx
+│   ├── App.css
+│   ├── index.css
+│   ├── DPILandingPage.jsx
+│   ├── assets/
+│   │   └── react.svg
+│   ├── components/
+│   │   ├── layout/
+│   │   │   ├── Header.jsx
+│   │   │   └── Footer.jsx
+│   │   ├── sections/
+│   │   │   ├── HomeSection.jsx
+│   │   │   ├── AboutSection.jsx
+│   │   │   ├── ServicesSection.jsx
+│   │   │   ├── MethodologySection.jsx
+│   │   │   ├── ProjectsSection.jsx
+│   │   │   ├── ClientsSection.jsx
+│   │   │   ├── WhyDPISection.jsx
+│   │   │   └── ContactSection.jsx
+│   │   └── ui/
+│   │       ├── ImageWithFallback.jsx
+│   │       └── ThemeToggle.jsx
+└── public/
+    └── vite.svg
+```
+
+---
+
+## 📌 Secciones del Sitio
+
+- **Inicio**
+- **Quiénes Somos**
+- **Servicios**
+- **Metodología**
+- **Proyectos (con filtros y buscador)**
+- **Clientes**
+- **Por qué DPI**
+- **Contacto**
+- **Footer**
+
+Todas optimizadas y totalmente responsivas.
+
+---
+
+## ▶️ Instalación
+
+```bash
+npm install
+npm run dev
+```
+
+---
+
+## 📦 Build de Producción
+
+```bash
+npm run build
+```
+
+Esto genera la carpeta final lista para desplegar.
+
+---
+
+## ☁️ CI/CD con Google Cloud (Opcional)
+
+Este proyecto puede ser desplegado automáticamente en:
+
+- Google Cloud Run  
+- Firebase Hosting  
+- Cloud Build  
+- GitHub Actions
+
+Puedo generar tu archivo CI/CD (`cloudbuild.yaml` + workflow .yml) si lo deseas.
+
+---
+
+## 📄 Licencia
+
+Uso privado — DPI Diseño Planeación Integral.
+
+---
+
+## 👤 Autor
+
+**Emiliano Gauna**  
+GitHub: https://github.com/emilianoGGauna
