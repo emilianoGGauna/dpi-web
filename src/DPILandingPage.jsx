@@ -61,6 +61,11 @@ export default function DPILandingPage({
       {/* ABOUT */}
       {showAboutSection && <AboutSection accentColor={accentColor} />}
 
+      {/* PROJECTS */}
+      {showProjectsSection && (
+        <ProjectsSection accentColor={accentColor} />
+      )}
+      
       {/* SERVICES */}
       {showServicesSection && <ServicesSection accentColor={accentColor} />}
 
@@ -75,11 +80,6 @@ export default function DPILandingPage({
       {/* METHODOLOGY */}
       {showMethodologySection && (
         <MethodologySection accentColor={accentColor} />
-      )}
-
-      {/* PROJECTS */}
-      {showProjectsSection && (
-        <ProjectsSection accentColor={accentColor} />
       )}
 
       {/* CLIENTS */}
