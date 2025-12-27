@@ -1,41 +1,35 @@
 # ============================
-# 1️⃣ BUILD STAGE – Node + Vite
+# 1️⃣ BUILD STAGE – Node
 # ============================
 FROM node:18 AS builder
 
-# Working directory
 WORKDIR /app
-
-# Install dependencies
 COPY package*.json ./
 RUN npm install
-
-# Copy all project files
 COPY . .
-
-# Build production bundle
 RUN npm run build
-
 
 # ============================
 # 2️⃣ PRODUCTION STAGE – NGINX
 # ============================
 FROM nginx:stable-alpine
 
-# Cloud Run requires listening on $PORT (default 8080)
-ENV PORT=8080
+# Install envsubst
+RUN apk add --no-cache gettext
 
-# Remove default nginx files
+# Remove default nginx html
 RUN rm -rf /usr/share/nginx/html/*
 
 # Copy build output
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Replace default Nginx config
+# Copy nginx config template
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose Cloud Run port
+# Expose port (Cloud Run ignores this but keeps Docker happy)
 EXPOSE 8080
 
-# Start NGINX
-CMD ["nginx", "-g", "daemon off;"]
+# Replace env vars inside nginx.conf and start nginx
+CMD ["/bin/sh", "-c", \
+    "envsubst < /etc/nginx/conf.d/default.conf > /etc/nginx/conf.d/default.conf && \
+     nginx -g 'daemon off;'"]
