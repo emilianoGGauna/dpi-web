@@ -17,19 +17,19 @@ FROM nginx:stable-alpine
 # Install envsubst
 RUN apk add --no-cache gettext
 
-# Remove default nginx html
+# Remove default html
 RUN rm -rf /usr/share/nginx/html/*
 
-# Copy build output
+# Copy built site
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx config template
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy template config
+COPY nginx.conf.template /etc/nginx/templates/nginx.conf.template
 
-# Expose port (Cloud Run ignores this but keeps Docker happy)
+# Expose Cloud Run port
 EXPOSE 8080
 
-# Replace env vars inside nginx.conf and start nginx
-CMD ["/bin/sh", "-c", \
-    "envsubst < /etc/nginx/conf.d/default.conf > /etc/nginx/conf.d/default.conf && \
-     nginx -g 'daemon off;'"]
+# Start nginx with envsubst
+CMD ["/bin/sh", "-c", "\
+    envsubst < /etc/nginx/templates/nginx.conf.template > /etc/nginx/conf.d/default.conf && \
+    nginx -g 'daemon off;'"]
