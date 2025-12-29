@@ -6,6 +6,12 @@ export default function HomeSection({
   ctaText,
   accentColor = "#C0392B",
 }) {
+  const IMG_API =
+    import.meta.env.VITE_IMAGES_API_BASE || "http://127.0.0.1:8080";
+
+  // Same DPI image from your bucket via your API
+  const heroImg = `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=2000&q=85&format=jpeg`;
+
   return (
     <section
       id="home"
@@ -18,7 +24,7 @@ export default function HomeSection({
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <ImageWithFallback
-          src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab"
+          src={heroImg}
           alt="Proyecto urbano DPI"
           className="w-full h-full object-cover"
         />

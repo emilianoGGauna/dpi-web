@@ -4,19 +4,41 @@ import ImageWithFallback from "../ui/ImageWithFallback";
 
 export default function ClientsSection({
   accentColor = "#C0392B",
-  showTestimonials = true
+  showTestimonials = true,
 }) {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
 
+  const IMG_API =
+    import.meta.env.VITE_IMAGES_API_BASE || "http://127.0.0.1:8080";
+
+  // Same DPI image from your bucket via your API (individual strings on purpose)
+  const dpiLogo1 = `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=600&q=85&format=jpeg`;
+  const dpiLogo2 = `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=600&q=85&format=jpeg`;
+  const dpiLogo3 = `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=600&q=85&format=jpeg`;
+  const dpiLogo4 = `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=600&q=85&format=jpeg`;
+  const dpiLogo5 = `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=600&q=85&format=jpeg`;
+  const dpiLogo6 = `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=600&q=85&format=jpeg`;
+  const dpiLogo7 = `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=600&q=85&format=jpeg`;
+  const dpiLogo8 = `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=600&q=85&format=jpeg`;
+
+  const dpiTestLogo1 = `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=600&q=85&format=jpeg`;
+  const dpiTestLogo2 = `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=600&q=85&format=jpeg`;
+  const dpiTestLogo3 = `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=600&q=85&format=jpeg`;
+
+  const partnerLogo1 = `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=400&q=85&format=jpeg`;
+  const partnerLogo2 = `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=400&q=85&format=jpeg`;
+  const partnerLogo3 = `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=400&q=85&format=jpeg`;
+  const partnerLogo4 = `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=400&q=85&format=jpeg`;
+
   const clients = [
-    { id: 1, name: "GRUPO CARSO", logo: "https://via.placeholder.com/200x80?text=GRUPO+CARSO" },
-    { id: 2, name: "GICSA", logo: "https://via.placeholder.com/200x80?text=GICSA" },
-    { id: 3, name: "GRUPO GIGANTE", logo: "https://via.placeholder.com/200x80?text=GRUPO+GIGANTE" },
-    { id: 4, name: "FRISA", logo: "https://via.placeholder.com/200x80?text=FRISA" },
-    { id: 5, name: "SORDO MADALENO", logo: "https://via.placeholder.com/200x80?text=SORDO+MADALENO" },
-    { id: 6, name: "GRUPO MRP", logo: "https://via.placeholder.com/200x80?text=GRUPO+MRP" },
-    { id: 7, name: "GAVA CAPITAL", logo: "https://via.placeholder.com/200x80?text=GAVA+CAPITAL" },
-    { id: 8, name: "THOR URBANA", logo: "https://via.placeholder.com/200x80?text=THOR+URBANA" },
+    { id: 1, name: "GRUPO CARSO", logo: dpiLogo1 },
+    { id: 2, name: "GICSA", logo: dpiLogo2 },
+    { id: 3, name: "GRUPO GIGANTE", logo: dpiLogo3 },
+    { id: 4, name: "FRISA", logo: dpiLogo4 },
+    { id: 5, name: "SORDO MADALENO", logo: dpiLogo5 },
+    { id: 6, name: "GRUPO MRP", logo: dpiLogo6 },
+    { id: 7, name: "GAVA CAPITAL", logo: dpiLogo7 },
+    { id: 8, name: "THOR URBANA", logo: dpiLogo8 },
   ];
 
   const testimonials = [
@@ -26,7 +48,7 @@ export default function ClientsSection({
         "DPI fue clave en el éxito de nuestro desarrollo habitacional. Su profundo conocimiento del mercado inmobiliario y normatividad urbana nos permitió optimizar el proyecto y aumentar significativamente su rentabilidad.",
       author: "Ing. Carlos Hernández",
       position: "Director de Desarrollo, Grupo Carso",
-      logo: "https://via.placeholder.com/200x80?text=GRUPO+CARSO",
+      logo: dpiTestLogo1,
     },
     {
       id: 2,
@@ -34,7 +56,7 @@ export default function ClientsSection({
         "La metodología de DPI ha sido fundamental para nuestro proyecto comercial. Su análisis minucioso del entorno urbano y las tendencias de mercado nos dieron una ventaja competitiva clara frente a desarrollos similares en la zona.",
       author: "Arq. Adriana Morales",
       position: "Directora de Proyectos, GICSA",
-      logo: "https://via.placeholder.com/200x80?text=GICSA",
+      logo: dpiTestLogo2,
     },
     {
       id: 3,
@@ -42,7 +64,7 @@ export default function ClientsSection({
         "Trabajar con DPI significó un cambio radical en nuestra estrategia de expansión. Su visión integral nos permitió identificar oportunidades que otros consultores no habían detectado, resultando en un proyecto mucho más exitoso.",
       author: "Lic. Roberto Sánchez",
       position: "CEO, Grupo Gigante Inmobiliario",
-      logo: "https://via.placeholder.com/200x80?text=GRUPO+GIGANTE",
+      logo: dpiTestLogo3,
     },
   ];
 
@@ -60,7 +82,6 @@ export default function ClientsSection({
       className="py-16 md:py-24 bg-white dark:bg-[#121212] transition-colors duration-300"
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        
         {/* TITLE */}
         <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white text-center mb-6">
           Clientes y Colaboraciones
@@ -105,7 +126,6 @@ export default function ClientsSection({
               rounded-lg shadow-lg p-8 md:p-10 
               transition-colors duration-300
             ">
-              
               {/* QUOTE ICON */}
               <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                 <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white dark:bg-[#2C2C2C] shadow-md">
@@ -182,24 +202,25 @@ export default function ClientsSection({
           </h3>
 
           <div className="flex flex-wrap justify-center items-center gap-8 mt-6">
-            {["UNAM", "COLEGIO ARQ", "SEDUVI", "CANADEVI"].map((name) => (
+            {[
+              { name: "UNAM", logo: partnerLogo1 },
+              { name: "COLEGIO ARQ", logo: partnerLogo2 },
+              { name: "SEDUVI", logo: partnerLogo3 },
+              { name: "CANADEVI", logo: partnerLogo4 },
+            ].map((p) => (
               <div
-                key={name}
+                key={p.name}
                 className="grayscale hover:grayscale-0 transition-all duration-300"
               >
                 <ImageWithFallback
-                  src={`https://via.placeholder.com/150x50?text=${name.replace(
-                    " ",
-                    "+"
-                  )}`}
-                  alt={name}
+                  src={p.logo}
+                  alt={p.name}
                   className="h-8"
                 />
               </div>
             ))}
           </div>
         </div>
-
       </div>
     </section>
   );

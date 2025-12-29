@@ -3,6 +3,8 @@ import { MapPin, Search, ChevronDown, Filter } from "lucide-react";
 import ImageWithFallback from "../ui/ImageWithFallback";
 
 export default function ProjectsSection({ accentColor = "#C0392B" }) {
+  const IMG_API = import.meta.env.VITE_IMAGES_API_BASE || "http://localhost:8080";
+
   const allProjects = [
     {
       id: 1,
@@ -10,7 +12,7 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
       type: "Uso mixto / Oficinas",
       location: "Ciudad de México",
       role: "Planeación Urbana y Gestión",
-      img: "https://images.unsplash.com/photo-1502784444185-4804c1ea9e14?auto=format&fit=crop&w=1200&q=80",
+      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
     },
     {
       id: 2,
@@ -18,7 +20,7 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
       type: "Vivienda Vertical",
       location: "Monterrey",
       role: "Desarrollo Inmobiliario",
-      img: "https://images.unsplash.com/photo-1565183928294-7063f23ce0f1?auto=format&fit=crop&w=1200&q=80",
+      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
     },
     {
       id: 3,
@@ -26,7 +28,7 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
       type: "Retail",
       location: "Guadalajara",
       role: "Estudio de Viabilidad y Uso de Suelo",
-      img: "https://images.unsplash.com/photo-1529429611278-df7c39c2ad29?auto=format&fit=crop&w=1200&q=80",
+      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
     },
     {
       id: 4,
@@ -34,7 +36,7 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
       type: "Industrial",
       location: "Querétaro",
       role: "Proyecto Llave en Mano",
-      img: "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=1200&q=80",
+      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
     },
     {
       id: 5,
@@ -42,7 +44,7 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
       type: "Regeneración Urbana",
       location: "Ciudad de México",
       role: "Master Plan y Gestión",
-      img: "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80",
+      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
     },
     {
       id: 6,
@@ -50,7 +52,7 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
       type: "Hospitalidad",
       location: "Cancún",
       role: "Consultoría Integral",
-      img: "https://images.unsplash.com/photo-1551776235-dde6d4829803?auto=format&fit=crop&w=1200&q=80",
+      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
     },
     {
       id: 7,
@@ -58,7 +60,7 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
       type: "Industrial",
       location: "Toluca",
       role: "Planeación y Desarrollo",
-      img: "https://images.unsplash.com/photo-1553697388-94e804e2f0f6?auto=format&fit=crop&w=1200&q=80",
+      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
     },
     {
       id: 8,
@@ -66,7 +68,7 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
       type: "Oficinas",
       location: "Ciudad de México",
       role: "Gestión y Desarrollo",
-      img: "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=80",
+      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
     },
     {
       id: 9,
@@ -74,7 +76,7 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
       type: "Vivienda Vertical",
       location: "Puebla",
       role: "Desarrollo Inmobiliario",
-      img: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=80",
+      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
     },
     {
       id: 10,
@@ -82,7 +84,7 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
       type: "Uso mixto / Oficinas",
       location: "Monterrey",
       role: "Consultoría Integral",
-      img: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80",
+      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
     },
     {
       id: 11,
@@ -90,7 +92,7 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
       type: "Retail",
       location: "León",
       role: "Estudio de Viabilidad y Desarrollo",
-      img: "https://images.unsplash.com/photo-1519999482648-25049ddd37b1?auto=format&fit=crop&w=1200&q=80",
+      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
     },
     {
       id: 12,
@@ -98,9 +100,10 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
       type: "Vivienda Horizontal",
       location: "Ciudad de México",
       role: "Master Plan y Gestión",
-      img: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?auto=format&fit=crop&w=1200&q=80",
+      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
     },
   ];
+
 
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("");

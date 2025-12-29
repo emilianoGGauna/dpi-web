@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mail, Phone, MapPin, Send, Check } from "lucide-react";
+import { Mail, Phone, MapPin, Check, MessageCircle } from "lucide-react";
 
 export default function ContactSection({ accentColor = "#C0392B" }) {
   const [formData, setFormData] = useState({
@@ -12,7 +12,6 @@ export default function ContactSection({ accentColor = "#C0392B" }) {
   });
 
   const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const handleChange = (e) => {
@@ -36,7 +35,9 @@ export default function ContactSection({ accentColor = "#C0392B" }) {
     if (!formData.email.trim()) {
       tempErrors.email = "Por favor, ingrese su email";
       isValid = false;
-    } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(formData.email)) {
+    } else if (
+      !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)
+    ) {
       tempErrors.email = "Dirección de email inválida";
       isValid = false;
     }
@@ -50,28 +51,37 @@ export default function ContactSection({ accentColor = "#C0392B" }) {
     return isValid;
   };
 
-  const handleSubmit = (e) => {
+  const handleWhatsAppSend = (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
 
-    if (validateForm()) {
-      setIsSubmitting(true);
+    // +52 3326374701 (sin +, sin espacios) para wa.me
+    const phoneE164 = "523326374701";
 
-      setTimeout(() => {
-        setIsSubmitting(false);
-        setSubmitSuccess(true);
-        setFormData({
-          name: "",
-          email: "",
-          phone: "",
-          company: "",
-          subject: "",
-          message: "",
-        });
+    const text = `Hola DPI, quiero ponerme en contacto.
 
-        setTimeout(() => setSubmitSuccess(false), 5000);
-      }, 1500);
-    }
+Nombre: ${formData.name}
+Email: ${formData.email}
+Teléfono: ${formData.phone || "-"}
+Empresa: ${formData.company || "-"}
+Asunto: ${formData.subject || "-"}
+
+Mensaje:
+${formData.message}
+`;
+
+    const url = `https://wa.me/${phoneE164}?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+
+    setSubmitSuccess(true);
+    setTimeout(() => setSubmitSuccess(false), 5000);
   };
+
+  const mapsQuery =
+    "Av. de los Arcos 735, Jardines del Bosque, 44520 Guadalajara, Jal.";
+  const mapsUrl =
+    "https://www.google.com/maps/search/?api=1&query=" +
+    encodeURIComponent(mapsQuery);
 
   return (
     <section
@@ -83,7 +93,6 @@ export default function ContactSection({ accentColor = "#C0392B" }) {
       "
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        
         {/* TITLE */}
         <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white text-center mb-6">
           Contacto
@@ -104,15 +113,15 @@ export default function ContactSection({ accentColor = "#C0392B" }) {
         </div>
 
         <div className="max-w-6xl mx-auto">
-          
           {/* PANELS */}
-          <div className="
-            flex flex-col lg:flex-row 
-            bg-white dark:bg-[#1E1E1E] 
-            rounded-lg shadow-lg overflow-hidden 
-            transition-colors duration-300
-          ">
-            
+          <div
+            className="
+              flex flex-col lg:flex-row 
+              bg-white dark:bg-[#1E1E1E] 
+              rounded-lg shadow-lg overflow-hidden 
+              transition-colors duration-300
+            "
+          >
             {/* CONTACT INFO */}
             <div
               className="
@@ -129,14 +138,18 @@ export default function ContactSection({ accentColor = "#C0392B" }) {
                 <InfoItem
                   icon={<Mail className="text-gray-800 dark:text-gray-200" />}
                   title="Correo Electrónico"
-                  content={<a href="mailto:contacto@dpi.mx">contacto@dpi.mx</a>}
+                  content={
+                    <a href="mailto:dpimexico_planeacion@yahoo.com.mx">
+                      dpimexico_planeacion@yahoo.com.mx
+                    </a>
+                  }
                   accentColor={accentColor}
                 />
 
                 <InfoItem
                   icon={<Phone className="text-gray-800 dark:text-gray-200" />}
                   title="Teléfono"
-                  content={<a href="tel:+525512345678">+52 55 1234 5678</a>}
+                  content={<a href="tel:+523336163987">+52 33 3616 3987</a>}
                   accentColor={accentColor}
                 />
 
@@ -145,36 +158,58 @@ export default function ContactSection({ accentColor = "#C0392B" }) {
                   title="Ubicación"
                   content={
                     <>
-                      Av. Reforma 222, Piso 15<br />
-                      Col. Juárez, 06600<br />
-                      Ciudad de México, México
+                      Av. de los Arcos 735<br />
+                      Jardines del Bosque, 44520<br />
+                      Guadalajara, Jal.
                     </>
                   }
                   accentColor={accentColor}
                 />
               </div>
+
+              {/* SMALL MAP UNDER LOCATION + CLICKABLE */}
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="block mt-6 rounded-lg overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700"
+                title="Abrir en Google Maps"
+              >
+                <div className="h-40 w-full relative">
+                  <iframe
+                    title="Mapa DPI Guadalajara"
+                    src="https://www.google.com/maps?q=Av.%20de%20los%20Arcos%20735,%20Jardines%20del%20Bosque,%20Guadalajara,%20Jal.&output=embed"
+                    className="w-full h-full border-0 pointer-events-none"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                  <div className="absolute bottom-2 right-2 bg-white/90 dark:bg-black/70 text-xs px-2 py-1 rounded">
+                    Abrir en Google Maps
+                  </div>
+                </div>
+              </a>
             </div>
 
             {/* FORM */}
             <div className="w-full lg:w-3/5 p-8 lg:p-12 text-gray-900 dark:text-white">
-              <h3 className="text-2xl font-semibold mb-8">
-                Envíenos un Mensaje
-              </h3>
+              <h3 className="text-2xl font-semibold mb-8">Envíenos un Mensaje</h3>
 
               {submitSuccess && (
-                <div className="
-                  mb-8 
-                  bg-green-50 dark:bg-green-900/30 
-                  border border-green-200 dark:border-green-700 
-                  text-green-800 dark:text-green-300 
-                  rounded-lg p-4 flex items-center
-                ">
+                <div
+                  className="
+                    mb-8 
+                    bg-green-50 dark:bg-green-900/30 
+                    border border-green-200 dark:border-green-700 
+                    text-green-800 dark:text-green-300 
+                    rounded-lg p-4 flex items-center
+                  "
+                >
                   <Check className="mr-2" />
-                  ¡Gracias por contactarnos!
+                  Se abrió WhatsApp con su mensaje listo para enviar.
                 </div>
               )}
 
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleWhatsAppSend}>
                 <FormFields
                   formData={formData}
                   errors={errors}
@@ -184,42 +219,19 @@ export default function ContactSection({ accentColor = "#C0392B" }) {
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    disabled={isSubmitting}
                     className="
                       inline-flex items-center px-6 py-3 rounded-md text-white 
                       hover:brightness-110 transition-all
                     "
-                    style={{ backgroundColor: accentColor }}
+                    style={{ backgroundColor: "#25D366" }}
                   >
-                    {isSubmitting ? (
-                      "Enviando..."
-                    ) : (
-                      <>
-                        <Send className="mr-2" /> Enviar
-                      </>
-                    )}
+                    <MessageCircle className="mr-2" />
+                    Enviar por WhatsApp
                   </button>
                 </div>
               </form>
             </div>
           </div>
-
-          {/* MAP */}
-          <div className="
-            w-full h-80 md:h-[420px] 
-            rounded-xl overflow-hidden shadow-lg 
-            mt-10 bg-gray-200 dark:bg-[#1E1E1E]
-            transition-colors duration-300
-          ">
-            <iframe
-              title="Ubicación DPI Guadalajara"
-              src="https://www.google.com/maps?q=Av.%20de%20los%20Arcos%20735,%20Jardines%20del%20Bosque,%20Guadalajara,%20Jal.&output=embed"
-              className="w-full h-full border-0"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
-          </div>
-
         </div>
       </div>
     </section>
