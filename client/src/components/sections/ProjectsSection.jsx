@@ -3,7 +3,7 @@ import { MapPin, Search, ChevronDown, Filter } from "lucide-react";
 import ImageWithFallback from "../ui/ImageWithFallback";
 
 export default function ProjectsSection({ accentColor = "#C0392B" }) {
-  const IMG_API = import.meta.env.VITE_IMAGES_API_BASE || "http://localhost:8080";
+  const IMG_API = (import.meta.env.VITE_IMAGES_API_BASE || "").replace(/\/$/, "");
 
   const allProjects = [
     {

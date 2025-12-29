@@ -8,8 +8,8 @@ export default function ClientsSection({
 }) {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
 
-  const IMG_API =
-    import.meta.env.VITE_IMAGES_API_BASE || "http://127.0.0.1:8080";
+  const IMG_API = (import.meta.env.VITE_IMAGES_API_BASE || "").replace(/\/$/, "");
+
 
   // Same DPI image from your bucket via your API (individual strings on purpose)
   const dpiLogo1 = `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=600&q=85&format=jpeg`;

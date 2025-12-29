@@ -6,8 +6,8 @@ export default function HomeSection({
   ctaText,
   accentColor = "#C0392B",
 }) {
-  const IMG_API =
-    import.meta.env.VITE_IMAGES_API_BASE || "http://127.0.0.1:8080";
+  const IMG_API = (import.meta.env.VITE_IMAGES_API_BASE || "").replace(/\/$/, "");
+
 
   // Same DPI image from your bucket via your API
   const heroImg = `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=2000&q=85&format=jpeg`;
