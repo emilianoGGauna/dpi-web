@@ -14,36 +14,20 @@ substitutions:
   _GCS_CACHE_BUCKET: "dpi-info-cache"
   _CACHE_TTL_SECONDS: "86400"
 
-  # Leave empty unless you really need it (not recommended for <img>)
-  _IMAGE_API_KEY: ""
+  # OJO: no recomendable hardcodear secrets aquí
+  _IMAGE_API_KEY: "apikey"
 
 steps:
-  # -------------------------
   # 1) Build BACKEND image
-  # -------------------------
   - name: "gcr.io/cloud-builders/docker"
     id: "Build dpi-api image"
-    args:
-      [
-        "build",
-        "-t",
-        "us-central1-docker.pkg.dev/$PROJECT_ID/${_API_REPO}/dpi-api:latest",
-        "-f",
-        "server/Dockerfile",
-        "server"
-      ]
+    args: ["build","-t","us-central1-docker.pkg.dev/$PROJECT_ID/${_API_REPO}/dpi-api:latest","-f","server/Dockerfile","server"]
 
   - name: "gcr.io/cloud-builders/docker"
     id: "Push dpi-api image"
-    args:
-      [
-        "push",
-        "us-central1-docker.pkg.dev/$PROJECT_ID/${_API_REPO}/dpi-api:latest"
-      ]
+    args: ["push","us-central1-docker.pkg.dev/$PROJECT_ID/${_API_REPO}/dpi-api:latest"]
 
-  # -------------------------
   # 2) Deploy BACKEND
-  # -------------------------
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     id: "Deploy dpi-api to Cloud Run"
     entrypoint: gcloud
@@ -54,52 +38,42 @@ steps:
         "--platform","managed",
         "--region","${_REGION}",
         "--allow-unauthenticated",
-
+        "--port","8080",
         "--update-env-vars",
         "GCS_ORIGINAL_BUCKET=${_GCS_ORIGINAL_BUCKET},GCS_CACHE_BUCKET=${_GCS_CACHE_BUCKET},CACHE_TTL_SECONDS=${_CACHE_TTL_SECONDS},IMAGE_API_KEY=${_IMAGE_API_KEY}"
       ]
 
-  # -------------------------
-  # 3) Get BACKEND URL
-  # -------------------------
+  # 3) Get BACKEND URL  (¡¡ESCAPES!!)
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     id: "Get dpi-api URL"
     entrypoint: bash
     args:
       - -c
       - |
-        API_URL=$(gcloud run services describe ${_API_SERVICE} --region ${_REGION} --format='value(status.url)')
-        echo "API_URL=$API_URL" | tee /workspace/api_url.txt
+        API_URL=$$(gcloud run services describe ${_API_SERVICE} --region ${_REGION} --format='value(status.url)')
+        echo "API_URL=$$API_URL" | tee /workspace/api_url.txt
 
-  # -------------------------
   # 4) Build FRONTEND image (inject API_URL at BUILD TIME)
-  # -------------------------
   - name: "gcr.io/cloud-builders/docker"
     id: "Build dpi-web image"
     entrypoint: bash
     args:
       - -c
       - |
-        API_URL=$(cat /workspace/api_url.txt | cut -d= -f2)
-        echo "Building web with VITE_IMAGES_API_BASE=$API_URL"
+        API_URL=$$(cut -d= -f2 /workspace/api_url.txt)
+        echo "Building web with VITE_IMAGES_API_BASE=$$API_URL"
 
         docker build \
           -t "us-central1-docker.pkg.dev/$PROJECT_ID/${_WEB_REPO}/dpi-web:latest" \
           -f client/Dockerfile \
-          --build-arg VITE_IMAGES_API_BASE="$API_URL" \
+          --build-arg VITE_IMAGES_API_BASE="$$API_URL" \
           client
 
   - name: "gcr.io/cloud-builders/docker"
     id: "Push dpi-web image"
-    args:
-      [
-        "push",
-        "us-central1-docker.pkg.dev/$PROJECT_ID/${_WEB_REPO}/dpi-web:latest"
-      ]
+    args: ["push","us-central1-docker.pkg.dev/$PROJECT_ID/${_WEB_REPO}/dpi-web:latest"]
 
-  # -------------------------
   # 5) Deploy FRONTEND
-  # -------------------------
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     id: "Deploy dpi-web to Cloud Run"
     entrypoint: gcloud
@@ -109,7 +83,8 @@ steps:
         "--image","us-central1-docker.pkg.dev/$PROJECT_ID/${_WEB_REPO}/dpi-web:latest",
         "--platform","managed",
         "--region","${_REGION}",
-        "--allow-unauthenticated"
+        "--allow-unauthenticated",
+        "--port","8080"
       ]
 
 images:

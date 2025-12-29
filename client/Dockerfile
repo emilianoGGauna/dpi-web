@@ -4,6 +4,13 @@
 FROM node:18 AS builder
 
 WORKDIR /app
+
+# 👇 Recibe el build-arg desde cloudbuild.yaml
+ARG VITE_IMAGES_API_BASE
+
+# 👇 Lo expone como variable de entorno para "npm run build" (Vite lo lee aquí)
+ENV VITE_IMAGES_API_BASE=$VITE_IMAGES_API_BASE
+
 COPY package*.json ./
 RUN npm install
 COPY . .
@@ -14,17 +21,11 @@ RUN npm run build
 # ============================
 FROM nginx:stable-alpine
 
-# Remove default html
 RUN rm -rf /usr/share/nginx/html/*
-
-# Copy built site
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy fixed nginx config
+# OJO: esto ya no es "template" realmente, es config final
 COPY nginx.conf.template /etc/nginx/conf.d/default.conf
 
-# Expose Cloud Run port
 EXPOSE 8080
-
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]
