@@ -8,10 +8,14 @@ const app = express();
 // Cloud Run / proxies
 app.set("trust proxy", true);
 
+// Body parser ANTES de rutas
+app.use(express.json({ limit: "100kb" }));
+
 // Basic hardening
 app.disable("x-powered-by");
+
+// Small request log (Cloud Logging friendly)
 app.use((req, res, next) => {
-  // Small request log (Cloud Logging friendly)
   const start = Date.now();
   res.on("finish", () => {
     const ms = Date.now() - start;
@@ -29,7 +33,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Optional: limit header size-ish (Express doesn't directly cap like nginx, but this helps)
+// Optional header size check
 app.use((req, res, next) => {
   const headerBytes = JSON.stringify(req.headers || {}).length;
   if (headerBytes > 16_000) return res.status(431).send("Request headers too large");
@@ -40,11 +44,8 @@ app.get("/", (req, res) => {
   res.type("text/plain").send("DPI API OK. Use /health or /api/images");
 });
 
-// Health endpoint (Cloud Run uses this style)
 app.get("/health", (req, res) => {
-  const ok =
-    Boolean(process.env.GCS_ORIGINAL_BUCKET) &&
-    Boolean(process.env.PORT || "8080");
+  const ok = Boolean(process.env.GCS_ORIGINAL_BUCKET) && Boolean(process.env.PORT || "8080");
 
   res.status(ok ? 200 : 500).json({
     ok,
@@ -59,29 +60,35 @@ app.get("/health", (req, res) => {
 
 // Routes
 app.use("/api/images", imagesRouter);
+app.use("/api/contact", contactRouter);
 
+console.log("SERVER IMAGE_API_KEY length:", (process.env.IMAGE_API_KEY || "").length);
+
+// Start server (bind explícito para Cloud Run)
 const PORT = Number(process.env.PORT || 8080);
-const server = app.listen(PORT, () => {
-  console.log(`API running on http://localhost:${PORT}`);
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log(`API listening on port ${PORT}`);
 });
 
-// Graceful shutdown for Cloud Run
+// Graceful shutdown
 function shutdown(signal) {
   console.log(`Received ${signal}. Shutting down...`);
   server.close(() => {
     console.log("Server closed.");
     process.exit(0);
   });
-  // Force exit after 10s
   setTimeout(() => process.exit(1), 10_000).unref();
 }
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
 
-
-console.log("SERVER IMAGE_API_KEY length:", (process.env.IMAGE_API_KEY || "").length);
-
-app.use(express.json({ limit: "100kb" }));
-
-app.use("/api/contact", contactRouter);
+// Log fatal errors (si crashea antes de escuchar, aquí lo verás en logs)
+process.on("unhandledRejection", (err) => {
+  console.error("UNHANDLED_REJECTION", err);
+  process.exit(1);
+});
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT_EXCEPTION", err);
+  process.exit(1);
+});
