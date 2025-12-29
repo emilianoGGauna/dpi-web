@@ -1,17 +1,53 @@
 <!doctype html>
-<html lang="en">
+<html lang="es-MX">
   <head>
     <meta charset="UTF-8" />
-
-    <!-- ✅ Favicon: pon un archivo en /public (recomendado) -->
-    <!-- Ejemplo: /public/favicon.svg -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>dpimexico</title>
+
+    <title>DPI México | Diseño Planeación Integral</title>
+
+    <!-- SEO básico -->
+    <meta
+      name="description"
+      content="DPI (Diseño Planeación Integral): soluciones estratégicas para inversiones inmobiliarias mediante planeación urbana, análisis financiero y desarrollo inmobiliario."
+    />
+    <meta name="robots" content="index,follow" />
+
+    <!-- Favicons (asegúrate de tenerlos en /public) -->
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Color del navegador / PWA básico -->
+    <meta name="theme-color" content="#C0392B" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="DPI México" />
+    <meta property="og:title" content="DPI México | Diseño Planeación Integral" />
+    <meta
+      property="og:description"
+      content="Soluciones estratégicas para inversiones inmobiliarias exitosas. Planeación urbana, análisis financiero y desarrollo inmobiliario."
+    />
+    <meta property="og:url" content="https://www.dpimexico.com/" />
+    <!-- Crea este archivo en /public para compartir bonito en WhatsApp/FB -->
+    <meta property="og:image" content="https://www.dpimexico.com/og-image.jpg" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="DPI México | Diseño Planeación Integral" />
+    <meta
+      name="twitter:description"
+      content="Planeación urbana, análisis financiero y desarrollo inmobiliario para inversiones exitosas."
+    />
+    <meta name="twitter:image" content="https://www.dpimexico.com/og-image.jpg" />
   </head>
+
   <body>
+    <noscript>Necesitas habilitar JavaScript para ver este sitio.</noscript>
     <div id="root"></div>
+
+    <!-- Vite entry -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
