@@ -9,13 +9,15 @@ const app = express();
 app.set("trust proxy", true);
 app.disable("x-powered-by");
 
-// ✅ CORS (no dependency)
+// ✅ CORS FIX COMPLETO PARA PRODUCCIÓN
 app.use((req, res, next) => {
   const origin = req.headers.origin;
 
   const allowlist = new Set([
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://www.dpimexico.com",
+    "https://dpimexico.com",
   ]);
 
   if (origin && allowlist.has(origin)) {
@@ -28,6 +30,7 @@ app.use((req, res, next) => {
   res.setHeader("Access-Control-Max-Age", "86400");
 
   if (req.method === "OPTIONS") return res.sendStatus(204);
+
   next();
 });
 
