@@ -1,10 +1,9 @@
 import { Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 
-export default function ThemeToggle() {
+export default function ThemeToggle({ accentColor = "#C0392B" }) {
   const [isDark, setIsDark] = useState(false);
 
-  // On mount: read saved preference or OS preference
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
 
@@ -15,11 +14,7 @@ export default function ThemeToggle() {
       document.documentElement.classList.remove("dark");
       setIsDark(false);
     } else {
-      // OS preference
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)"
-      ).matches;
-
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       if (prefersDark) {
         document.documentElement.classList.add("dark");
         setIsDark(true);
@@ -44,18 +39,41 @@ export default function ThemeToggle() {
     <button
       onClick={toggleTheme}
       aria-label="Toggle dark mode"
+      title={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
       className="
         fixed bottom-6 left-6 z-50
-        flex items-center justify-center
+        inline-flex items-center justify-center
         w-12 h-12 rounded-full
-        bg-white dark:bg-gray-900
-        text-gray-900 dark:text-gray-100
+        border
         shadow-lg
-        hover:scale-105 transition-transform
-        border border-gray-200 dark:border-gray-700
+        transition-all
+        hover:scale-105 active:scale-95
+        focus:outline-none focus:ring-2 focus:ring-offset-2
+        focus:ring-offset-transparent
+        backdrop-blur-md
       "
+      // ✅ Márgenes (border) blanco/negro según ícono (sol/luna)
+      style={{
+        backgroundColor: isDark ? "rgba(16,17,20,0.88)" : "rgba(255,255,255,0.88)",
+        borderColor: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.14)",
+        boxShadow: `0 10px 30px rgba(0,0,0,0.18), 0 0 0 1px ${accentColor}22 inset`,
+      }}
     >
-      {isDark ? <Moon size={20} /> : <Sun size={20} />}
+      {/* Accent halo suave */}
+      <span
+        className="absolute inset-0 rounded-full pointer-events-none"
+        style={{
+          background: `radial-gradient(closest-side, ${accentColor}18, transparent 70%)`,
+        }}
+      />
+
+      <span className="relative inline-flex items-center justify-center">
+        {isDark ? (
+          <Moon size={20} className="text-white" />
+        ) : (
+          <Sun size={20} className="text-black" />
+        )}
+      </span>
     </button>
   );
 }

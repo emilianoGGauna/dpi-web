@@ -12,16 +12,15 @@ import MethodologySection from "./components/sections/MethodologySection";
 import ClientsSection from "./components/sections/ClientsSection";
 import ContactSection from "./components/sections/ContactSection";
 
-
 export default function DPILandingPage({
-  headline = "Soluciones estratégicas para inversiones inmobiliarias exitosas",
-  subtitle = "Transformamos ideas en proyectos rentables mediante planeación urbana, análisis financiero y desarrollo inmobiliario",
-  ctaText = "Agenda una asesoría",
+  headline = "Transformamos ideas en proyectos rentables mediante planeación urbana",
+  subtitle = "Acompañamos a inmobiliarias, constructoras y propietarios desde la planeación y el diseño hasta la gestión urbana del proyecto.",
+  ctaText = "Contáctanos",
   accentColor = "#C0392B",
   secondaryColor = "#2C3E50",
 
   showAboutSection = true,
-  showWhyDPISection = true,
+  showWhyDPISection = false,
   showServicesSection = true,
   showProjectsSection = true,
   showMethodologySection = true,
@@ -31,26 +30,14 @@ export default function DPILandingPage({
   showTestimonials = true,
 }) {
   return (
-    <div
-      className="
-        min-h-screen
-        overflow-x-hidden
-        bg-white dark:bg-gray-900
-        text-gray-900 dark:text-gray-100
-        transition-colors duration-300
-      "
-    >
-      {/* DARK MODE TOGGLE */}
-      <ThemeToggle />
+    <div className="min-h-screen overflow-x-hidden bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+      {/* Theme toggle (styled + accent border) */}
+      <ThemeToggle accentColor={accentColor} />
 
-      {/* HEADER */}
-      <Header
-        ctaText={ctaText}
-        logoText="DPI"
-        accentColor={accentColor}
-      />
+      {/* Header */}
+      <Header ctaText={ctaText} logoText="DPI" accentColor={accentColor} />
 
-      {/* HERO */}
+      {/* Hero */}
       <HomeSection
         headline={headline}
         subtitle={subtitle}
@@ -58,18 +45,16 @@ export default function DPILandingPage({
         accentColor={accentColor}
       />
 
-      {/* ABOUT */}
+      {/* About */}
       {showAboutSection && <AboutSection accentColor={accentColor} />}
 
-      {/* PROJECTS */}
-      {showProjectsSection && (
-        <ProjectsSection accentColor={accentColor} />
-      )}
-      
-      {/* SERVICES */}
+      {/* Projects */}
+      {showProjectsSection && <ProjectsSection accentColor={accentColor} />}
+
+      {/* Services */}
       {showServicesSection && <ServicesSection accentColor={accentColor} />}
 
-      {/* WHY DPI */}
+      {/* Why DPI */}
       {showWhyDPISection && (
         <WhyDPISection
           accentColor={accentColor}
@@ -77,12 +62,15 @@ export default function DPILandingPage({
         />
       )}
 
-      {/* METHODOLOGY */}
+      {/* Methodology */}
       {showMethodologySection && (
         <MethodologySection accentColor={accentColor} />
       )}
+      
+      {/* Contact */}
+      {showContactSection && <ContactSection accentColor={accentColor} />}
 
-      {/* CLIENTS */}
+      {/* Clients */}
       {showClientsSection && (
         <ClientsSection
           accentColor={accentColor}
@@ -90,12 +78,7 @@ export default function DPILandingPage({
         />
       )}
 
-      {/* CONTACT */}
-      {showContactSection && (
-        <ContactSection accentColor={accentColor} />
-      )}
-
-      {/* FOOTER */}
+      {/* Footer */}
       {showFooter && <Footer accentColor={accentColor} />}
     </div>
   );

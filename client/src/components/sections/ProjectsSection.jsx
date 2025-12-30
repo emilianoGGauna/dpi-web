@@ -1,199 +1,205 @@
-import { useState } from "react";
-import { MapPin, Search, ChevronDown, Filter } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { MapPin, Search, ChevronDown, Filter, X } from "lucide-react";
 import ImageWithFallback from "../ui/ImageWithFallback";
+
+/* ---------------- helpers ---------------- */
+const isHttp = (s = "") => /^https?:\/\//i.test(String(s || ""));
+
+function normalizeType(type = "") {
+  // para agrupar por "Uso mixto / Oficinas" => "Uso mixto"
+  return String(type).split("/")[0].trim();
+}
 
 export default function ProjectsSection({ accentColor = "#C0392B" }) {
   const IMG_API = (import.meta.env.VITE_IMAGES_API_BASE || "").replace(/\/$/, "");
+  const PROJECTS_URL = `${IMG_API}/api/home-slides`; // ✅ se queda en home-slides
 
-  const allProjects = [
-    {
-      id: 1,
-      title: "Parque Empresarial Santa Fe",
-      type: "Uso mixto / Oficinas",
-      location: "Ciudad de México",
-      role: "Planeación Urbana y Gestión",
-      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
-    },
-    {
-      id: 2,
-      title: "Residencial Altavista",
-      type: "Vivienda Vertical",
-      location: "Monterrey",
-      role: "Desarrollo Inmobiliario",
-      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
-    },
-    {
-      id: 3,
-      title: "Centro Comercial La Marina",
-      type: "Retail",
-      location: "Guadalajara",
-      role: "Estudio de Viabilidad y Uso de Suelo",
-      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
-    },
-    {
-      id: 4,
-      title: "Corredor Logístico Norte",
-      type: "Industrial",
-      location: "Querétaro",
-      role: "Proyecto Llave en Mano",
-      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
-    },
-    {
-      id: 5,
-      title: "Distrito Urbano Reforma",
-      type: "Regeneración Urbana",
-      location: "Ciudad de México",
-      role: "Master Plan y Gestión",
-      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
-    },
-    {
-      id: 6,
-      title: "Hotel Riviera",
-      type: "Hospitalidad",
-      location: "Cancún",
-      role: "Consultoría Integral",
-      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
-    },
-    {
-      id: 7,
-      title: "Parque Industrial Toluca",
-      type: "Industrial",
-      location: "Toluca",
-      role: "Planeación y Desarrollo",
-      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
-    },
-    {
-      id: 8,
-      title: "Torre Ejecutiva Polanco",
-      type: "Oficinas",
-      location: "Ciudad de México",
-      role: "Gestión y Desarrollo",
-      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
-    },
-    {
-      id: 9,
-      title: "Conjunto Residencial Los Pinos",
-      type: "Vivienda Vertical",
-      location: "Puebla",
-      role: "Desarrollo Inmobiliario",
-      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
-    },
-    {
-      id: 10,
-      title: "Centro Corporativo Valle",
-      type: "Uso mixto / Oficinas",
-      location: "Monterrey",
-      role: "Consultoría Integral",
-      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
-    },
-    {
-      id: 11,
-      title: "Plaza Comercial El Dorado",
-      type: "Retail",
-      location: "León",
-      role: "Estudio de Viabilidad y Desarrollo",
-      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
-    },
-    {
-      id: 12,
-      title: "Eco Residencial Bosque Real",
-      type: "Vivienda Horizontal",
-      location: "Ciudad de México",
-      role: "Master Plan y Gestión",
-      img: `${IMG_API}/api/images?object=LOGO%20DPI.jpg&w=1200&q=80&format=jpeg`,
-    },
-  ];
+  const buildImageUrlFromObject = (objectName) =>
+    `${IMG_API}/api/images?object=${encodeURIComponent(objectName)}&w=1400&q=82&format=jpeg`;
 
+  const [allProjects, setAllProjects] = useState([]);
+  const [status, setStatus] = useState("loading"); // loading | ready | error
+  const [errorMsg, setErrorMsg] = useState("");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [visibleCount, setVisibleCount] = useState(6);
 
-  const projectTypes = [
-    ...new Set(allProjects.map((p) => p.type.split("/")[0].trim())),
-  ];
-  const projectLocations = [
-    ...new Set(allProjects.map((p) => p.location)),
-  ];
+  // ✅ Load from JSON (GCS via backend)
+  useEffect(() => {
+    const controller = new AbortController();
 
-  const filteredProjects = allProjects.filter((project) => {
-    const matchesSearch =
-      searchTerm === "" ||
-      project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.location.toLowerCase().includes(searchTerm.toLowerCase());
+    async function load() {
+      if (!IMG_API) {
+        setStatus("error");
+        setErrorMsg("Falta VITE_IMAGES_API_BASE para consumir el endpoint.");
+        return;
+      }
 
-    const matchesType =
-      typeFilter === "" || project.type.includes(typeFilter);
-    const matchesLocation =
-      locationFilter === "" || project.location === locationFilter;
+      setStatus("loading");
+      setErrorMsg("");
 
-    return matchesSearch && matchesType && matchesLocation;
-  });
+      try {
+        const res = await fetch(PROJECTS_URL, {
+          signal: controller.signal,
+          cache: "no-store",
+        });
+
+        if (!res.ok) {
+          let msg = `HTTP ${res.status}`;
+          try {
+            const j = await res.json();
+            if (j?.error) msg = `${msg} — ${j.error}`;
+          } catch {}
+          throw new Error(msg);
+        }
+
+        const raw = await res.json();
+        if (!Array.isArray(raw)) {
+          throw new Error("home-slides.json (o project-list.json) debe ser un arreglo JSON (array).");
+        }
+
+        const mapped = raw
+          .filter(Boolean)
+          .map((p, idx) => {
+            const imgObject = p.imgObject || p.img; // soporta ambos
+            const img = imgObject
+              ? isHttp(imgObject)
+                ? imgObject
+                : buildImageUrlFromObject(imgObject)
+              : "";
+
+            return {
+              id: p.id ?? idx + 1,
+              title: p.title ?? `Proyecto ${idx + 1}`,
+              type: p.type ?? "",
+              location: p.location ?? "",
+              role: p.role ?? "",
+              fx: p.fx ?? "",
+              img,
+            };
+          })
+          .filter((p) => Boolean(p.title));
+
+        if (!mapped.length) {
+          throw new Error("El JSON se cargó, pero no hay proyectos válidos.");
+        }
+
+        setAllProjects(mapped);
+        setStatus("ready");
+      } catch (e) {
+        setAllProjects([]);
+        setStatus("error");
+        setErrorMsg(`No se pudo cargar proyectos desde /api/home-slides. (${e?.message || "error"})`);
+      }
+    }
+
+    load();
+    return () => controller.abort();
+  }, [IMG_API, PROJECTS_URL]);
+
+  // ✅ derived filters
+  const projectTypes = useMemo(() => {
+    return [...new Set(allProjects.map((p) => normalizeType(p.type)).filter(Boolean))].sort();
+  }, [allProjects]);
+
+  const projectLocations = useMemo(() => {
+    return [...new Set(allProjects.map((p) => p.location).filter(Boolean))].sort();
+  }, [allProjects]);
+
+  // ✅ filtered projects
+  const filteredProjects = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+
+    return allProjects.filter((p) => {
+      const matchesSearch =
+        !q ||
+        (p.title || "").toLowerCase().includes(q) ||
+        (p.type || "").toLowerCase().includes(q) ||
+        (p.role || "").toLowerCase().includes(q) ||
+        (p.location || "").toLowerCase().includes(q);
+
+      const matchesType = !typeFilter || normalizeType(p.type) === typeFilter;
+      const matchesLocation = !locationFilter || p.location === locationFilter;
+
+      return matchesSearch && matchesType && matchesLocation;
+    });
+  }, [allProjects, searchTerm, typeFilter, locationFilter]);
+
+  // ✅ reset "load more" when filters change
+  useEffect(() => {
+    setVisibleCount(6);
+  }, [searchTerm, typeFilter, locationFilter]);
 
   const visibleProjects = filteredProjects.slice(0, visibleCount);
 
   const handleLoadMore = () => {
-    setVisibleCount((prev) =>
-      Math.min(prev + 6, filteredProjects.length)
-    );
+    setVisibleCount((prev) => Math.min(prev + 6, filteredProjects.length));
   };
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setTypeFilter("");
+    setLocationFilter("");
+  };
+
+  const hasActiveFilters = Boolean(searchTerm || typeFilter || locationFilter);
 
   return (
     <section
       id="projects"
       className="
-        py-16 md:py-24 
-        bg-[#F4F5F7] dark:bg-[#121212]
+        py-16 md:py-24
+        bg-[#F4F5F7] dark:bg-[#0B0C10]
         transition-colors duration-300
+        scroll-mt-[96px] md:scroll-mt-[112px]
       "
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        
         {/* TITLE */}
-        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white text-center mb-6">
-          Proyectos
-        </h2>
-
-        <div
-          className="w-20 h-1.5 mx-auto mb-8"
-          style={{ backgroundColor: accentColor }}
-        />
+        <div className="text-center mb-10">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+            Proyectos
+          </h2>
+          <div className="w-20 h-1.5 mx-auto mt-5 rounded" style={{ backgroundColor: accentColor }} />
+          <p className="mt-4 text-gray-600 dark:text-white/65 max-w-3xl mx-auto">
+            Explora proyectos por tipo, ubicación o palabra clave.
+          </p>
+        </div>
 
         {/* FILTER BOX */}
         <div
           className="
-            bg-white dark:bg-[#1A1A1A] 
-            rounded-lg shadow-sm p-4 mb-8
-            border border-gray-200 dark:border-gray-700
+            bg-white/90 dark:bg-[#101114]/85
+            rounded-2xl shadow-sm p-4 sm:p-5 mb-8
+            border border-gray-200 dark:border-white/10
+            backdrop-blur
             transition-colors duration-300
           "
         >
-
-          <div className="flex flex-col md:flex-row gap-4">
-
+          <div className="flex flex-col lg:flex-row gap-3 lg:gap-4">
             {/* SEARCH */}
-            <div className="flex-grow md:max-w-md relative">
+            <div className="flex-grow lg:max-w-md relative">
+              <Search
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/35"
+              />
               <input
                 type="text"
                 placeholder="Buscar proyectos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="
-                  w-full px-4 py-2.5 pl-10 rounded-md
-                  border border-gray-300 dark:border-gray-600
-                  bg-white dark:bg-[#2A2A2A]
-                  text-gray-900 dark:text-gray-200
-                  focus:outline-none focus:ring-2 
-                  focus:ring-gray-200 dark:focus:ring-gray-700
-                  transition-colors duration-300
+                  w-full pl-10 pr-4 py-2.5 rounded-xl
+                  border border-gray-200 dark:border-white/10
+                  bg-white dark:bg-white/5
+                  text-gray-900 dark:text-white
+                  placeholder:text-gray-400 dark:placeholder:text-white/35
+                  focus:outline-none focus:ring-2
+                  transition
                 "
-              />
-              <Search
-                size={18}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+                style={{ outlineColor: accentColor }}
               />
             </div>
 
@@ -202,17 +208,17 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
               className="
-                px-4 py-2.5 rounded-md
-                bg-white dark:bg-[#2A2A2A]
-                border border-gray-300 dark:border-gray-600
-                text-gray-900 dark:text-gray-200
+                px-4 py-2.5 rounded-xl
+                bg-white dark:bg-white/5
+                border border-gray-200 dark:border-white/10
+                text-gray-900 dark:text-white
                 transition-colors duration-300
               "
             >
               <option value="">Todos los tipos</option>
-              {projectTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
+              {projectTypes.map((t) => (
+                <option key={t} value={t}>
+                  {t}
                 </option>
               ))}
             </select>
@@ -222,10 +228,10 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
               value={locationFilter}
               onChange={(e) => setLocationFilter(e.target.value)}
               className="
-                px-4 py-2.5 rounded-md
-                bg-white dark:bg-[#2A2A2A]
-                border border-gray-300 dark:border-gray-600
-                text-gray-900 dark:text-gray-200
+                px-4 py-2.5 rounded-xl
+                bg-white dark:bg-white/5
+                border border-gray-200 dark:border-white/10
+                text-gray-900 dark:text-white
                 transition-colors duration-300
               "
             >
@@ -237,94 +243,178 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
               ))}
             </select>
 
-            {/* CLEAR FILTERS */}
+            {/* CLEAR */}
             <button
-              onClick={() => {
-                setSearchTerm("");
-                setTypeFilter("");
-                setLocationFilter("");
-              }}
-              className="
-                px-4 py-2.5 rounded-md
-                bg-white dark:bg-[#2A2A2A]
-                border border-gray-300 dark:border-gray-600
-                text-gray-900 dark:text-gray-200
-                hover:bg-gray-50 dark:hover:bg-[#333]
-                transition-colors duration-300
-              "
+              onClick={clearFilters}
+              disabled={!hasActiveFilters}
+              className={[
+                "inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl",
+                "border transition",
+                hasActiveFilters
+                  ? "bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10"
+                  : "bg-gray-100 dark:bg-white/5 border-gray-200 dark:border-white/10 opacity-50 cursor-not-allowed",
+              ].join(" ")}
             >
-              Limpiar filtros
+              <X size={16} className="opacity-80" />
+              Limpiar
             </button>
+          </div>
+
+          {/* SUMMARY */}
+          <div className="mt-4 flex items-center justify-between flex-wrap gap-3 text-sm">
+            <div className="text-gray-600 dark:text-white/60 flex items-center">
+              <Filter size={16} className="mr-2 opacity-80" />
+              {status === "ready" ? (
+                <>
+                  Mostrando <span className="mx-1 font-semibold text-gray-900 dark:text-white">{visibleProjects.length}</span>
+                  de <span className="ml-1 font-semibold text-gray-900 dark:text-white">{filteredProjects.length}</span> proyectos
+                </>
+              ) : (
+                "Cargando…"
+              )}
+            </div>
+
+            {hasActiveFilters && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {typeFilter && (
+                  <span className="text-xs px-2 py-1 rounded-full border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 bg-white dark:bg-white/5">
+                    Tipo: {typeFilter}
+                  </span>
+                )}
+                {locationFilter && (
+                  <span className="text-xs px-2 py-1 rounded-full border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 bg-white dark:bg-white/5">
+                    Ubicación: {locationFilter}
+                  </span>
+                )}
+                {searchTerm && (
+                  <span className="text-xs px-2 py-1 rounded-full border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 bg-white dark:bg-white/5">
+                    Buscar: “{searchTerm}”
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* FILTER SUMMARY */}
-        <div className="mb-6 text-gray-600 dark:text-gray-300 flex items-center">
-          <Filter size={16} className="mr-2" />
-          Mostrando {visibleProjects.length} de {filteredProjects.length} proyectos
-        </div>
+        {/* STATES */}
+        {status === "error" && (
+          <div className="rounded-2xl border border-red-200/60 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-5 text-red-800 dark:text-red-200">
+            <div className="font-semibold">Error cargando proyectos</div>
+            <div className="mt-1 text-sm opacity-90">{errorMsg}</div>
+          </div>
+        )}
+
+        {status === "loading" && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10 bg-white dark:bg-[#101114] animate-pulse"
+              >
+                <div className="h-52 bg-gray-200 dark:bg-white/10" />
+                <div className="p-5 space-y-3">
+                  <div className="h-4 w-3/4 bg-gray-200 dark:bg-white/10 rounded" />
+                  <div className="h-3 w-1/2 bg-gray-200 dark:bg-white/10 rounded" />
+                  <div className="h-3 w-2/3 bg-gray-200 dark:bg-white/10 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* GRID */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {visibleProjects.map((p) => (
-            <div
-              key={p.id}
-              className="
-                relative group rounded-lg overflow-hidden shadow-md
-                bg-white dark:bg-[#1A1A1A]
-                border border-gray-200 dark:border-gray-700
-                transition-colors duration-300
-              "
-            >
-              <ImageWithFallback
-                src={p.img}
-                alt={p.title}
-                className="w-full h-64 object-cover"
-              />
-
-              {/* HOVER OVERLAY */}
-              <div className="
-                absolute inset-0 bg-black/60 
-                opacity-0 group-hover:opacity-100
-                transition-opacity flex flex-col justify-end p-6
-              ">
-                <h3 className="text-white text-lg font-semibold">
-                  {p.title}
-                </h3>
-                <p className="text-gray-200 text-sm">{p.type}</p>
-                <p className="text-gray-200 text-sm italic">{p.role}</p>
-                <p className="text-gray-200 text-sm mt-1">
-                  <MapPin size={14} className="inline mr-1" />
-                  {p.location}
-                </p>
-
-                <div
-                  className="mt-2 h-0.5 w-16"
-                  style={{ backgroundColor: accentColor }}
-                />
+        {status === "ready" && (
+          <>
+            {filteredProjects.length === 0 ? (
+              <div className="text-center text-gray-600 dark:text-white/60 py-10">
+                No hay proyectos que coincidan con tus filtros.
               </div>
-            </div>
-          ))}
-        </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                {visibleProjects.map((p) => (
+                  <article
+                    key={p.id}
+                    id={`project-${p.id}`} // ✅ IMPORTANTE para HomeSection scroll
+                    className="
+                      group rounded-2xl overflow-hidden
+                      border border-gray-200 dark:border-white/10
+                      bg-white dark:bg-[#101114]
+                      shadow-sm hover:shadow-lg
+                      transition-all duration-300
+                      hover:-translate-y-0.5
+                    "
+                  >
+                    {/* Image */}
+                    <div className="relative h-52 overflow-hidden">
+                      <ImageWithFallback
+                        src={p.img}
+                        alt={p.title}
+                        className={[
+                          "w-full h-full object-cover",
+                          "transition-transform duration-500 ease-out",
+                          "group-hover:scale-[1.04]",
+                          p.fx || "",
+                        ].join(" ")}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-5">
+                        <div
+                          className="h-1 w-14 rounded-full mb-3"
+                          style={{ backgroundColor: accentColor }}
+                        />
+                        <h3 className="text-white text-lg font-semibold leading-snug">
+                          {p.title}
+                        </h3>
+                      </div>
+                    </div>
 
-        {/* LOAD MORE BUTTON */}
-        {filteredProjects.length > visibleCount && (
-          <div className="mt-12 text-center">
-            <button
-              onClick={handleLoadMore}
-              className="
-                inline-flex items-center px-6 py-3 rounded-md border
-                bg-white dark:bg-[#2A2A2A]
-                border-gray-300 dark:border-gray-600
-                text-gray-900 dark:text-gray-200
-                hover:bg-gray-50 dark:hover:bg-[#333]
-                transition-colors duration-300
-              "
-            >
-              Cargar más proyectos
-              <ChevronDown size={16} className="ml-2" />
-            </button>
-          </div>
+                    {/* Content */}
+                    <div className="p-5">
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {p.type && (
+                          <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200 dark:bg-white/5 dark:text-white/70 dark:border-white/10">
+                            {p.type}
+                          </span>
+                        )}
+                        {p.role && (
+                          <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200 dark:bg-white/5 dark:text-white/70 dark:border-white/10">
+                            {p.role}
+                          </span>
+                        )}
+                      </div>
+
+                      {p.location && (
+                        <div className="text-sm text-gray-600 dark:text-white/60 flex items-center">
+                          <MapPin size={14} className="mr-2 opacity-80" />
+                          {p.location}
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+
+            {/* LOAD MORE */}
+            {filteredProjects.length > visibleCount && (
+              <div className="mt-12 text-center">
+                <button
+                  onClick={handleLoadMore}
+                  className="
+                    inline-flex items-center px-6 py-3 rounded-xl border
+                    bg-white dark:bg-white/5
+                    border-gray-200 dark:border-white/10
+                    text-gray-900 dark:text-white
+                    hover:bg-gray-50 dark:hover:bg-white/10
+                    transition
+                  "
+                >
+                  Cargar más proyectos
+                  <ChevronDown size={16} className="ml-2 opacity-80" />
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </section>

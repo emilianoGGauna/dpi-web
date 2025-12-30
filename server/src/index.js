@@ -2,10 +2,34 @@
 import "dotenv/config";
 import express from "express";
 import imagesRouter from "./routes/images.js";
+import imagesListRouter from "./routes/imagesList.js"; // ✅ NEW
+import homeSlides from "./routes/homeSlides.js";
 
 const app = express();
 app.set("trust proxy", true);
 app.disable("x-powered-by");
+
+// ✅ CORS (no dependency)
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  const allowlist = new Set([
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+  ]);
+
+  if (origin && allowlist.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  }
+
+  res.setHeader("Access-Control-Allow-Methods", "GET,HEAD,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-api-key");
+  res.setHeader("Access-Control-Max-Age", "86400");
+
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
 
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -41,7 +65,9 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get("/", (req, res) => res.type("text/plain").send("DPI API OK. Use /health or /api/images"));
+app.get("/", (req, res) =>
+  res.type("text/plain").send("DPI API OK. Use /health or /api/images")
+);
 
 app.get("/health", (req, res) => {
   const ok = Boolean(process.env.GCS_ORIGINAL_BUCKET);
@@ -56,7 +82,13 @@ app.get("/health", (req, res) => {
   });
 });
 
-// ✅ imágenes (NO pongas API key aquí si lo consumes con <img>)
+// ✅ Mount routes
+app.use("/api", homeSlides);
+
+// ✅ /api/images/list?prefix=LOGOS%20DE%20CLIENTES/
+app.use("/api/images", imagesListRouter);
+
+// ✅ existing image endpoint(s), e.g. /api/images?object=...
 app.use("/api/images", imagesRouter);
 
 // error handler final

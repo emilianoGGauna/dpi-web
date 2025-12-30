@@ -1,104 +1,140 @@
-import { 
-  Facebook, 
-  Twitter, 
-  Instagram, 
-  Linkedin, 
-  ArrowRight, 
-  MapPin, 
-  Phone, 
-  Mail 
+import {
+  Facebook,
+  Twitter,
+  Instagram,
+  Linkedin,
+  ArrowRight,
+  MapPin,
+  Phone,
+  Mail,
 } from "lucide-react";
 
 export default function Footer({ accentColor = "#C0392B" }) {
   const year = new Date().getFullYear();
 
+  const quickLinks = [
+    { label: "Inicio", href: "#" },
+    { label: "Quiénes Somos", href: "#about" },
+    { label: "Proyectos", href: "#projects" },
+    { label: "Servicios", href: "#services" },
+    { label: "Metodología", href: "#methodology" },
+    { label: "Clientes", href: "#clients" },
+    { label: "Contacto", href: "#contact" },
+  ];
+
+  const services = [
+    "Planeación urbana",
+    "Estudios de viabilidad",
+    "Uso de suelo y normatividad",
+    "Desarrollo inmobiliario",
+    "Proyectos llave en mano",
+    "Proyectos de integración urbana",
+    "Gestión urbana",
+    "Proyecto definitivo de urbanización",
+    "Estudios y proyectos especiales",
+  ];
+
+  // Contact (from your current site copy)
+  const addressLines = [
+    "Av. de los Arcos 735",
+    "Jardines del Bosque, 44520",
+    "Guadalajara, Jal.",
+  ];
+  const phone = "+52 33 3616 3987";
+  const email = "dpimexico_planeacion@yahoo.com.mx";
+  const mapsQuery = "Av. de los Arcos 735, Jardines del Bosque, 44520 Guadalajara, Jal.";
+  const mapsUrl =
+    "https://www.google.com/maps/search/?api=1&query=" +
+    encodeURIComponent(mapsQuery);
+
+  // If you don’t have socials yet, you can set this to false.
+  const showSocials = false;
+
   return (
-    <footer className="
-      bg-gray-100 text-gray-700
-      dark:bg-black dark:text-gray-300
-      transition-colors duration-300
-    ">
-      {/* Main Footer */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8">
-          
-          {/* Logo & About */}
-          <div className="col-span-1 md:col-span-2 lg:col-span-1">
-            <div className="flex items-center mb-6">
-              <span
-                className="text-2xl font-bold mr-1"
-                style={{ color: accentColor }}
-              >
+    <footer className="bg-gray-50 text-gray-700 dark:bg-[#0B0C10] dark:text-white/70 transition-colors duration-300">
+      {/* subtle top accent */}
+      <div className="h-[2px]" style={{ backgroundColor: `${accentColor}AA` }} />
+
+      {/* Main */}
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-14">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
+          {/* Brand */}
+          <div className="lg:col-span-1">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-2xl font-extrabold" style={{ color: accentColor }}>
                 DPI
               </span>
-              <span className="text-xl font-light dark:text-gray-200">
+              <span className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">
                 Diseño Planeación Integral
               </span>
             </div>
 
-            <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md">
-              Desarrollamos soluciones urbanas e inmobiliarias que optimizan recursos,
-              minimizan riesgos y maximizan el valor de la inversión, creando entornos
-              que mejoran la calidad de vida.
+            <p className="text-sm leading-relaxed text-gray-600 dark:text-white/65">
+              Facilitamos la planeación, gestión y desarrollo de inversiones inmobiliarias con
+              visión urbana, soporte técnico-jurídico y análisis financiero.
             </p>
 
-            <div className="flex space-x-4">
+            <div className="mt-5 flex flex-wrap gap-2">
               {[
-                { Icon: Facebook, label: "Facebook" },
-                { Icon: Twitter, label: "Twitter" },
-                { Icon: Linkedin, label: "LinkedIn" },
-                { Icon: Instagram, label: "Instagram" },
-              ].map(({ Icon, label }) => (
-                <a
-                  key={label}
-                  href="#"
-                  className="
-                    w-10 h-10 rounded-full flex items-center justify-center
-                    border border-gray-400 dark:border-gray-700
-                    hover:border-gray-600 dark:hover:border-gray-500
-                    transition-colors
-                  "
-                  aria-label={label}
+                { k: "Desde", v: "2006" },
+                { k: "Socios", v: "1988" },
+                { k: "Proyectos", v: "+500" },
+              ].map((s) => (
+                <span
+                  key={s.k}
+                  className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs
+                             border-gray-200 bg-white/60 text-gray-700
+                             dark:border-white/10 dark:bg-white/5 dark:text-white/70"
                 >
-                  <Icon
-                    size={18}
-                    className="text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors"
-                  />
-                </a>
+                  <span className="opacity-70">{s.k}</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{s.v}</span>
+                </span>
               ))}
             </div>
+
+            {showSocials && (
+              <div className="mt-6 flex items-center gap-3">
+                {[
+                  { Icon: Facebook, label: "Facebook", href: "#" },
+                  { Icon: Twitter, label: "Twitter", href: "#" },
+                  { Icon: Linkedin, label: "LinkedIn", href: "#" },
+                  { Icon: Instagram, label: "Instagram", href: "#" },
+                ].map(({ Icon, label, href }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    aria-label={label}
+                    className="
+                      w-10 h-10 rounded-full inline-flex items-center justify-center
+                      border border-gray-200 bg-white/60
+                      hover:bg-white transition
+                      dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10
+                    "
+                  >
+                    <Icon size={18} className="text-gray-700 dark:text-white/70" />
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Quick Links */}
+          {/* Quick links */}
           <div>
-            <h3 className="text-lg font-semibold mb-6">
-              <span
-                className="border-b-2 pb-1 pr-4"
-                style={{ borderColor: accentColor }}
-              >
-                Enlaces Rápidos
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-5">
+              <span className="inline-block border-b-2 pb-1 pr-4" style={{ borderColor: accentColor }}>
+                Navegación
               </span>
             </h3>
 
             <ul className="space-y-3">
-              {[
-                { label: "Inicio", href: "#" },
-                { label: "Quiénes Somos", href: "#about" },
-                { label: "Servicios", href: "#services" },
-                { label: "Proyectos", href: "#projects" },
-                { label: "Contacto", href: "#contact" },
-              ].map(({ label, href }) => (
+              {quickLinks.map(({ label, href }) => (
                 <li key={label}>
-                  <a 
+                  <a
                     href={href}
-                    className="
-                      flex items-center
-                      text-gray-600 dark:text-gray-400
-                      hover:text-black dark:hover:text-white
-                      transition-colors
-                    "
+                    className="group inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900
+                               dark:text-white/65 dark:hover:text-white transition-colors"
                   >
-                    <ArrowRight size={14} className="mr-2" />
+                    <ArrowRight size={14} className="opacity-60 group-hover:opacity-100" />
                     {label}
                   </a>
                 </li>
@@ -108,81 +144,92 @@ export default function Footer({ accentColor = "#C0392B" }) {
 
           {/* Services */}
           <div>
-            <h3 className="text-lg font-semibold mb-6">
-              <span
-                className="border-b-2 pb-1 pr-4"
-                style={{ borderColor: accentColor }}
-              >
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-5">
+              <span className="inline-block border-b-2 pb-1 pr-4" style={{ borderColor: accentColor }}>
                 Servicios
               </span>
             </h3>
 
             <ul className="space-y-3">
-              {[
-                "Planeación Urbana",
-                "Estudios de Viabilidad",
-                "Uso de Suelo",
-                "Desarrollo Inmobiliario",
-                "Proyectos llave en mano",
-              ].map((service) => (
-                <li key={service}>
-                  <a 
+              {services.slice(0, 6).map((s) => (
+                <li key={s}>
+                  <a
                     href="#services"
-                    className="
-                      flex items-center
-                      text-gray-600 dark:text-gray-400
-                      hover:text-black dark:hover:text-white
-                      transition-colors
-                    "
+                    className="group inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900
+                               dark:text-white/65 dark:hover:text-white transition-colors"
                   >
-                    <ArrowRight size={14} className="mr-2" />
-                    {service}
+                    <ArrowRight size={14} className="opacity-60 group-hover:opacity-100" />
+                    {s}
                   </a>
                 </li>
               ))}
             </ul>
+
+            <a
+              href="#services"
+              className="
+                mt-5 inline-flex items-center gap-2 text-xs font-semibold
+                text-gray-900 dark:text-white
+                border rounded-full px-3 py-2
+                border-gray-200 bg-white/60 hover:bg-white
+                dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10
+                transition
+              "
+            >
+              Ver todos los servicios <ArrowRight size={14} />
+            </a>
           </div>
 
           {/* Contact */}
           <div>
-            <h3 className="text-lg font-semibold mb-6">
-              <span
-                className="border-b-2 pb-1 pr-4"
-                style={{ borderColor: accentColor }}
-              >
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-5">
+              <span className="inline-block border-b-2 pb-1 pr-4" style={{ borderColor: accentColor }}>
                 Contacto
               </span>
             </h3>
 
             <div className="space-y-4">
-              <div className="flex items-start">
-                <MapPin size={18} className="text-gray-600 dark:text-gray-400 mt-1" />
-                <p className="ml-3 text-gray-600 dark:text-gray-400">
-                  Av. Reforma 222, Piso 15<br />
-                  Col. Juárez, 06600<br />
-                  Ciudad de México, México
-                </p>
-              </div>
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="group flex items-start gap-3 text-sm text-gray-600 hover:text-gray-900
+                           dark:text-white/65 dark:hover:text-white transition-colors"
+                title="Abrir en Google Maps"
+              >
+                <MapPin size={18} className="mt-0.5 opacity-70 group-hover:opacity-100" />
+                <div className="leading-relaxed">
+                  {addressLines.map((l) => (
+                    <div key={l}>{l}</div>
+                  ))}
+                  <div className="mt-1 text-[12px] opacity-70">Abrir en Google Maps</div>
+                </div>
+              </a>
 
-              <div className="flex items-center">
-                <Phone size={18} className="text-gray-600 dark:text-gray-400" />
-                <p className="ml-3 text-gray-600 dark:text-gray-400">
-                  +52 55 1234 5678
-                </p>
-              </div>
+              <a
+                href={`tel:${phone.replace(/\s/g, "")}`}
+                className="group flex items-center gap-3 text-sm text-gray-600 hover:text-gray-900
+                           dark:text-white/65 dark:hover:text-white transition-colors"
+              >
+                <Phone size={18} className="opacity-70 group-hover:opacity-100" />
+                <span>{phone}</span>
+              </a>
 
-              <div className="flex items-center">
-                <Mail size={18} className="text-gray-600 dark:text-gray-400" />
-                <p className="ml-3 text-gray-600 dark:text-gray-400">
-                  contacto@dpi.mx
-                </p>
-              </div>
+              <a
+                href={`mailto:${email}`}
+                className="group flex items-center gap-3 text-sm text-gray-600 hover:text-gray-900
+                           dark:text-white/65 dark:hover:text-white transition-colors break-all"
+              >
+                <Mail size={18} className="opacity-70 group-hover:opacity-100" />
+                <span>{email}</span>
+              </a>
 
               <a
                 href="#contact"
                 className="
-                  inline-flex items-center px-4 py-2 mt-2 rounded-md text-white
-                  hover:bg-opacity-90 transition-colors
+                  inline-flex items-center justify-center
+                  mt-2 px-4 py-2 rounded-lg text-sm font-semibold text-white
+                  hover:brightness-110 transition
                 "
                 style={{ backgroundColor: accentColor }}
               >
@@ -193,20 +240,20 @@ export default function Footer({ accentColor = "#C0392B" }) {
         </div>
       </div>
 
-      {/* Bottom Footer */}
-      <div className="border-t border-gray-300 dark:border-gray-800">
+      {/* Bottom */}
+      <div className="border-t border-gray-200 dark:border-white/10">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="text-gray-600 dark:text-gray-500 text-sm mb-4 md:mb-0">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+            <div className="text-xs text-gray-500 dark:text-white/45">
               © {year} DPI - Diseño Planeación Integral S.A. de C.V. Todos los derechos reservados.
             </div>
 
-            <div className="flex space-x-6 text-gray-600 dark:text-gray-500 text-sm">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-gray-500 dark:text-white/45">
               {["Política de Privacidad", "Términos y Condiciones", "Aviso Legal"].map((item) => (
                 <a
                   key={item}
                   href="#"
-                  className="hover:text-black dark:hover:text-white transition-colors"
+                  className="hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   {item}
                 </a>

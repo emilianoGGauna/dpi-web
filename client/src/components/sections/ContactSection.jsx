@@ -35,9 +35,7 @@ export default function ContactSection({ accentColor = "#C0392B" }) {
     if (!formData.email.trim()) {
       tempErrors.email = "Por favor, ingrese su email";
       isValid = false;
-    } else if (
-      !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)
-    ) {
+    } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)) {
       tempErrors.email = "Dirección de email inválida";
       isValid = false;
     }
@@ -55,7 +53,6 @@ export default function ContactSection({ accentColor = "#C0392B" }) {
     e.preventDefault();
     if (!validateForm()) return;
 
-    // +52 3326374701 (sin +, sin espacios) para wa.me
     const phoneE164 = "523326374701";
 
     const text = `Hola DPI, quiero ponerme en contacto.
@@ -77,18 +74,16 @@ ${formData.message}
     setTimeout(() => setSubmitSuccess(false), 5000);
   };
 
-  const mapsQuery =
-    "Av. de los Arcos 735, Jardines del Bosque, 44520 Guadalajara, Jal.";
+  const mapsQuery = "Av. de los Arcos 735, Jardines del Bosque, 44520 Guadalajara, Jal.";
   const mapsUrl =
-    "https://www.google.com/maps/search/?api=1&query=" +
-    encodeURIComponent(mapsQuery);
+    "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(mapsQuery);
 
   return (
     <section
       id="contact"
       className="
-        py-16 md:py-24 
-        bg-[#F4F5F7] dark:bg-[#121212] 
+        py-16 md:py-24
+        bg-[#F4F5F7] dark:bg-[#0B0C10]
         transition-colors duration-300
       "
     >
@@ -98,17 +93,13 @@ ${formData.message}
           Contacto
         </h2>
 
-        <div
-          className="w-20 h-1.5 mx-auto mb-6"
-          style={{ backgroundColor: accentColor }}
-        />
+        <div className="w-20 h-1.5 mx-auto mb-6" style={{ backgroundColor: accentColor }} />
 
         {/* INTRO */}
         <div className="max-w-3xl mx-auto text-center mb-16">
-          <p className="text-lg text-gray-700 dark:text-gray-300">
-            Estamos listos para transformar sus ideas en proyectos exitosos.
-            Contáctenos para discutir cómo podemos ayudarle a maximizar el valor
-            de su inversión inmobiliaria.
+          <p className="text-lg text-gray-700 dark:text-white/70">
+            Estamos listos para transformar sus ideas en proyectos exitosos. Contáctenos para
+            discutir cómo podemos ayudarle a maximizar el valor de su inversión inmobiliaria.
           </p>
         </div>
 
@@ -116,30 +107,38 @@ ${formData.message}
           {/* PANELS */}
           <div
             className="
-              flex flex-col lg:flex-row 
-              bg-white dark:bg-[#1E1E1E] 
-              rounded-lg shadow-lg overflow-hidden 
+              flex flex-col lg:flex-row
+              bg-white dark:bg-[#101114]
+              rounded-lg shadow-lg overflow-hidden
+              border border-gray-200 dark:border-white/10
               transition-colors duration-300
             "
           >
             {/* CONTACT INFO */}
             <div
               className="
-                w-full lg:w-2/5 p-8 lg:p-12 
+                w-full lg:w-2/5 p-8 lg:p-12
                 text-gray-900 dark:text-white
+                bg-white/60 dark:bg-[#0F1013]
+                transition-colors duration-300
               "
-              style={{ backgroundColor: `${accentColor}08` }}
+              style={{
+                // mantiene el “tinte” en light y un toque sutil en dark
+                background:
+                  `linear-gradient(0deg, ${accentColor}10, ${accentColor}06)`,
+              }}
             >
-              <h3 className="text-2xl font-semibold mb-8">
-                Información de Contacto
-              </h3>
+              <h3 className="text-2xl font-semibold mb-8">Información de Contacto</h3>
 
               <div className="space-y-6">
                 <InfoItem
-                  icon={<Mail className="text-gray-800 dark:text-gray-200" />}
+                  icon={<Mail className="text-gray-800 dark:text-white/80" />}
                   title="Correo Electrónico"
                   content={
-                    <a href="mailto:dpimexico_planeacion@yahoo.com.mx">
+                    <a
+                      href="mailto:dpimexico_planeacion@yahoo.com.mx"
+                      className="hover:underline"
+                    >
                       dpimexico_planeacion@yahoo.com.mx
                     </a>
                   }
@@ -147,14 +146,18 @@ ${formData.message}
                 />
 
                 <InfoItem
-                  icon={<Phone className="text-gray-800 dark:text-gray-200" />}
+                  icon={<Phone className="text-gray-800 dark:text-white/80" />}
                   title="Teléfono"
-                  content={<a href="tel:+523336163987">+52 33 3616 3987</a>}
+                  content={
+                    <a href="tel:+523336163987" className="hover:underline">
+                      +52 33 3616 3987
+                    </a>
+                  }
                   accentColor={accentColor}
                 />
 
                 <InfoItem
-                  icon={<MapPin className="text-gray-800 dark:text-gray-200" />}
+                  icon={<MapPin className="text-gray-800 dark:text-white/80" />}
                   title="Ubicación"
                   content={
                     <>
@@ -172,7 +175,7 @@ ${formData.message}
                 href={mapsUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="block mt-6 rounded-lg overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700"
+                className="block mt-6 rounded-lg overflow-hidden shadow-sm border border-gray-200 dark:border-white/10"
                 title="Abrir en Google Maps"
               >
                 <div className="h-40 w-full relative">
@@ -197,10 +200,10 @@ ${formData.message}
               {submitSuccess && (
                 <div
                   className="
-                    mb-8 
-                    bg-green-50 dark:bg-green-900/30 
-                    border border-green-200 dark:border-green-700 
-                    text-green-800 dark:text-green-300 
+                    mb-8
+                    bg-green-50 dark:bg-green-900/30
+                    border border-green-200 dark:border-green-700
+                    text-green-800 dark:text-green-200
                     rounded-lg p-4 flex items-center
                   "
                 >
@@ -210,17 +213,13 @@ ${formData.message}
               )}
 
               <form onSubmit={handleWhatsAppSend}>
-                <FormFields
-                  formData={formData}
-                  errors={errors}
-                  handleChange={handleChange}
-                />
+                <FormFields formData={formData} errors={errors} handleChange={handleChange} />
 
                 <div className="flex justify-end">
                   <button
                     type="submit"
                     className="
-                      inline-flex items-center px-6 py-3 rounded-md text-white 
+                      inline-flex items-center px-6 py-3 rounded-md text-white
                       hover:brightness-110 transition-all
                     "
                     style={{ backgroundColor: "#25D366" }}
@@ -238,24 +237,25 @@ ${formData.message}
   );
 }
 
-/* ---------- HELPERS WITH DARK MODE ---------- */
+/* ---------- HELPERS (dark colors aligned with previous UI: #0B0C10 / #101114) ---------- */
 
 function InfoItem({ icon, title, content, accentColor }) {
   return (
     <div className="flex items-start">
       <div
         className="
-          w-10 h-10 rounded-full flex items-center justify-center 
-          bg-gray-100 dark:bg-[#2A2A2A]
+          w-10 h-10 rounded-full flex items-center justify-center
+          bg-gray-100 dark:bg-[#101114]
+          border border-gray-200 dark:border-white/10
           transition-colors duration-300
         "
-        style={{ border: `1px solid ${accentColor}40` }}
+        style={{ boxShadow: `0 0 0 1px ${accentColor}22 inset` }}
       >
         {icon}
       </div>
       <div className="ml-4">
         <h4 className="font-medium dark:text-white">{title}</h4>
-        <div className="text-gray-600 dark:text-gray-300">{content}</div>
+        <div className="text-gray-600 dark:text-white/70">{content}</div>
       </div>
     </div>
   );
@@ -271,17 +271,16 @@ function FormFields({ formData, errors, handleChange }) {
         onChange={handleChange}
         placeholder={placeholder}
         className={`
-          w-full px-4 py-2 border rounded-md 
-          bg-white dark:bg-[#2A2A2A] 
-          text-gray-900 dark:text-gray-200
+          w-full px-4 py-2 border rounded-md
+          bg-white dark:bg-[#0F1013]
+          text-gray-900 dark:text-white/90
+          placeholder:text-gray-400 dark:placeholder:text-white/40
           transition-colors duration-300
-          ${errors[name] ? "border-red-500" : "border-gray-300 dark:border-gray-600"}
+          ${errors[name] ? "border-red-500" : "border-gray-300 dark:border-white/10"}
         `}
       />
       {errors[name] && (
-        <p className="text-red-500 dark:text-red-400 text-xs mt-1">
-          {errors[name]}
-        </p>
+        <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors[name]}</p>
       )}
     </div>
   );
@@ -305,17 +304,16 @@ function FormFields({ formData, errors, handleChange }) {
           onChange={handleChange}
           placeholder="Mensaje *"
           className={`
-            w-full px-4 py-2 border rounded-md 
-            bg-white dark:bg-[#2A2A2A] 
-            text-gray-900 dark:text-gray-200
+            w-full px-4 py-2 border rounded-md
+            bg-white dark:bg-[#0F1013]
+            text-gray-900 dark:text-white/90
+            placeholder:text-gray-400 dark:placeholder:text-white/40
             transition-colors duration-300
-            ${errors.message ? "border-red-500" : "border-gray-300 dark:border-gray-600"}
+            ${errors.message ? "border-red-500" : "border-gray-300 dark:border-white/10"}
           `}
         />
         {errors.message && (
-          <p className="text-red-500 dark:text-red-400 text-xs mt-1">
-            {errors.message}
-          </p>
+          <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.message}</p>
         )}
       </div>
     </>

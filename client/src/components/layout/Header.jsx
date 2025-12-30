@@ -1,153 +1,230 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
+import logoSvg from "../../assets/logo.svg";
 
-export default function Header({ 
-  ctaText = "Agenda una asesoría",
+export default function Header({
   logoText = "DPI",
-  accentColor = "#C0392B"
+  accentColor = "#C0392B",
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
+  const panelRef = useRef(null);
+  const btnRef = useRef(null);
+
+  // ✅ Contacto ANTES que Clientes + sin "Por qué DPI"
+  const navLinks = useMemo(
+    () => [
+      { name: "Inicio", href: "#" },
+      { name: "Quiénes Somos", href: "#about" },
+      { name: "Proyectos", href: "#projects" },
+      { name: "Servicios", href: "#services" },
+      { name: "Metodología", href: "#methodology" },
+      { name: "Contacto", href: "#contact" },
+      { name: "Clientes", href: "#clients" },
+    ],
+    []
+  );
+
   // Change header background on scroll
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Navigation menu items
-  const navLinks = [
-    { name: "Inicio", href: "#" },
-    { name: "Quiénes Somos", href: "#about" },
-    { name: "Servicios", href: "#services" },
-    { name: "Por qué DPI", href: "#why-dpi" },
-    { name: "Metodología", href: "#methodology" },
-    { name: "Proyectos", href: "#projects" },
-    { name: "Clientes", href: "#clients" },
-    { name: "Contacto", href: "#contact" },
-  ];
+  // Close on ESC
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e) => e.key === "Escape" && setIsOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isOpen]);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const onDown = (e) => {
+      const panel = panelRef.current;
+      const btn = btnRef.current;
+      if (!panel || !btn) return;
+
+      const t = e.target;
+      if (panel.contains(t) || btn.contains(t)) return;
+
+      setIsOpen(false);
+    };
+
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
+    };
+  }, [isOpen]);
 
   return (
     <header
-      className={`
-        fixed top-0 left-0 right-0 z-50 transition-all duration-300
-        ${scrolled
-          ? "shadow-md bg-white/90 dark:bg-[#1C1C1C]/90 backdrop-blur-md"
-          : "bg-white dark:bg-[#1C1C1C]"
-        }
-      `}
+      style={{ ["--accent"]: accentColor }}
+      className={[
+        "fixed top-0 left-0 right-0 z-50",
+        "transition-all duration-300",
+        scrolled
+          ? "bg-white/80 dark:bg-[#0B0C10]/80 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.14)] border-b border-black/5 dark:border-white/10"
+          : "bg-white dark:bg-[#0B0C10] border-b border-black/0 dark:border-white/0",
+      ].join(" ")}
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 md:h-20">
+        <div className="h-16 md:h-20 flex items-center justify-between gap-4">
+          {/* Brand */}
+          <a
+            href="#"
+            className="flex items-center gap-3 select-none group"
+            aria-label="DPI - Inicio"
+            onClick={() => setIsOpen(false)}
+          >
+            <div className="relative">
+              <div className="h-10 w-10 rounded-2xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.04] flex items-center justify-center overflow-hidden">
+                <img src={logoSvg} alt="DPI" className="h-6 w-6" draggable={false} />
+              </div>
+              <div
+                className="absolute -inset-1 rounded-[18px] opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{
+                  boxShadow: `0 0 0 2px ${accentColor}22, 0 14px 40px rgba(0,0,0,0.18)`,
+                }}
+              />
+            </div>
 
-          {/* LOGO */}
-          <div className="flex items-center select-none">
-            <span
-              className="text-2xl font-bold tracking-tight"
-              style={{ color: accentColor }}
-            >
-              {logoText}
-            </span>
+            <div className="leading-tight">
+              <div className="flex items-baseline gap-2">
+                <span
+                  className="text-lg md:text-xl font-semibold tracking-tight"
+                  style={{ color: accentColor }}
+                >
+                  {logoText}
+                </span>
+                <span className="text-[12px] md:text-sm font-medium text-gray-900 dark:text-white/90">
+                  Diseño Planeación Integral
+                </span>
+              </div>
 
-            <span className="ml-2 text-xl font-light text-gray-800 dark:text-gray-200">
-              Diseño Planeación Integral
-            </span>
-          </div>
+              <div className="text-[11px] md:text-[12px] text-gray-600 dark:text-white/55">
+                Consultoría urbana • Gestión • Desarrollo
+              </div>
+            </div>
+          </a>
 
-          {/* DESKTOP NAVIGATION */}
-          <nav className="hidden md:flex space-x-6">
+          {/* Desktop nav */}
+          <nav className="hidden lg:flex items-center gap-6">
             {navLinks.map((link) => (
               <a
                 key={link.name}
                 href={link.href}
-                className="
-                  text-gray-800 dark:text-gray-200
-                  hover:text-[#C0392B] dark:hover:text-[#E74C3C]
-                  transition-colors duration-200 font-medium text-sm
-                "
+                className={[
+                  "text-sm font-medium",
+                  "text-gray-800 dark:text-white/80",
+                  "hover:text-[color:var(--accent)] dark:hover:text-[color:var(--accent)]",
+                  "transition-colors",
+                ].join(" ")}
               >
                 {link.name}
               </a>
             ))}
           </nav>
 
-          {/* DESKTOP CTA */}
-          <div className="hidden md:block">
-            <a
-              href="#contact"
-              className="
-                inline-flex items-center justify-center px-4 py-2 text-sm font-medium
-                rounded-md text-white shadow-sm hover:brightness-110 transition-all
-              "
-              style={{ backgroundColor: accentColor }}
-            >
-              {ctaText}
-            </a>
-          </div>
-
-          {/* MOBILE MENU TOGGLE */}
-          <div className="md:hidden">
-            <button
-              type="button"
-              className="
-                inline-flex items-center justify-center p-2 rounded-md
-                text-gray-800 dark:text-gray-100
-                hover:bg-gray-100 dark:hover:bg-[#2a2a2a]
-                transition
-              "
-              onClick={() => setIsOpen(!isOpen)}
-            >
-              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
-          </div>
+          {/* Mobile toggle */}
+          <button
+            ref={btnRef}
+            type="button"
+            onClick={() => setIsOpen((v) => !v)}
+            className="inline-flex items-center justify-center h-10 w-10 rounded-xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-white/5 hover:bg-black/[0.03] dark:hover:bg-white/10 transition lg:hidden"
+            aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
+            aria-expanded={isOpen}
+          >
+            {isOpen ? (
+              <X className="h-5 w-5 text-gray-900 dark:text-white" />
+            ) : (
+              <Menu className="h-5 w-5 text-gray-900 dark:text-white" />
+            )}
+          </button>
         </div>
       </div>
 
-      {/* MOBILE MENU */}
-      <div
-        className={`
-          md:hidden overflow-hidden transition-all duration-300
-          ${isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}
-        `}
-      >
-        <div className="px-4 py-3 bg-white dark:bg-[#1C1C1C] shadow-md">
-          {navLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              className="
-                block px-3 py-2 rounded-md
-                text-base font-medium
-                text-gray-800 dark:text-gray-100
-                hover:bg-gray-100 dark:hover:bg-[#2c2c2c]
-                transition
-              "
-              onClick={() => setIsOpen(false)}
-            >
-              {link.name}
-            </a>
-          ))}
+      {/* Mobile dropdown (compact, sin CTA rojo) */}
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/30 dark:bg-black/45" />
 
-          {/* MOBILE CTA */}
-          <div className="mt-3 px-3 py-2">
-            <a
-              href="#contact"
-              className="
-                block text-center px-4 py-2 text-sm font-medium
-                rounded-md text-white shadow-sm hover:brightness-110 transition-all
-              "
-              style={{ backgroundColor: accentColor }}
-              onClick={() => setIsOpen(false)}
-            >
-              {ctaText}
-            </a>
+          <div
+            ref={panelRef}
+            className={[
+              "fixed z-[60]",
+              "top-[72px] md:top-[84px] right-4",
+              "w-[min(92vw,360px)]",
+              "rounded-2xl overflow-hidden",
+              "border border-black/10 dark:border-white/10",
+              "bg-white/95 dark:bg-[#101114]/95 backdrop-blur-xl",
+              "shadow-[0_18px_80px_rgba(0,0,0,0.35)]",
+            ].join(" ")}
+            role="dialog"
+            aria-label="Menú"
+          >
+            <div className="p-4">
+              <div className="flex items-center gap-3 pb-3 border-b border-black/5 dark:border-white/10">
+                <div className="h-9 w-9 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.04] flex items-center justify-center">
+                  <img src={logoSvg} alt="DPI" className="h-5 w-5" />
+                </div>
+
+                <div className="min-w-0">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-semibold" style={{ color: accentColor }}>
+                      {logoText}
+                    </span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white/90 truncate">
+                      Diseño Planeación Integral
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-gray-600 dark:text-white/55">
+                    Planeación y gestión urbana integral.
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="ml-auto h-9 w-9 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/[0.03] dark:hover:bg-white/10 transition flex items-center justify-center"
+                  aria-label="Cerrar"
+                >
+                  <X className="h-4 w-4 text-gray-900 dark:text-white" />
+                </button>
+              </div>
+
+              <div className="pt-3">
+                <div className="grid gap-1">
+                  {navLinks.map((link) => (
+                    <a
+                      key={link.name}
+                      href={link.href}
+                      onClick={() => setIsOpen(false)}
+                      className={[
+                        "px-3 py-2 rounded-xl",
+                        "text-sm font-semibold",
+                        "text-gray-900 dark:text-white/90",
+                        "hover:bg-black/[0.03] dark:hover:bg-white/10",
+                        "transition",
+                      ].join(" ")}
+                    >
+                      {link.name}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </header>
   );
 }
