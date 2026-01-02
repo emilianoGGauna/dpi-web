@@ -15,7 +15,6 @@ export default function Footer({ accentColor = "#C0392B" }) {
   const quickLinks = [
     { label: "Inicio", href: "#" },
     { label: "Quiénes Somos", href: "#about" },
-    { label: "Proyectos", href: "#projects" },
     { label: "Servicios", href: "#services" },
     { label: "Metodología", href: "#methodology" },
     { label: "Clientes", href: "#clients" },
