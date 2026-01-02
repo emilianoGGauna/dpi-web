@@ -64,7 +64,7 @@ export default function Footer({ accentColor = "#C0392B" }) {
                 DPI
               </span>
               <span className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">
-                Diseño Planeación Integral
+                Diseño y Planeación Integral
               </span>
             </div>
 
