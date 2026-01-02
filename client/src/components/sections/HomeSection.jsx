@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUpRight, Headset, Briefcase } from "lucide-react";
+import { Headset, Briefcase, ChevronLeft, ChevronRight } from "lucide-react";
 import ImageWithFallback from "../ui/ImageWithFallback";
 
 /* -------------------- helpers -------------------- */
@@ -36,10 +36,55 @@ function shuffleCopy(arr) {
   return a;
 }
 
-function pickRandomUnique(arr, n) {
-  if (!Array.isArray(arr)) return [];
-  if (arr.length <= n) return [...arr];
-  return shuffleCopy(arr).slice(0, n);
+function pickRandom(arr) {
+  if (!Array.isArray(arr) || !arr.length) return null;
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/* Swipe (sin preventDefault / sin warning passive) */
+function useSwipe({ onLeft, onRight, disabled }) {
+  const ref = useRef({ down: false, x0: 0, y0: 0, dx: 0, dy: 0, t0: 0 });
+
+  const onPointerDown = (e) => {
+    if (disabled) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    ref.current = {
+      down: true,
+      x0: e.clientX,
+      y0: e.clientY,
+      dx: 0,
+      dy: 0,
+      t0: performance.now(),
+    };
+  };
+
+  const onPointerMove = (e) => {
+    if (disabled) return;
+    if (!ref.current.down) return;
+    ref.current.dx = e.clientX - ref.current.x0;
+    ref.current.dy = e.clientY - ref.current.y0;
+  };
+
+  const onPointerUp = () => {
+    if (disabled) return;
+    const s = ref.current;
+    ref.current.down = false;
+
+    const absX = Math.abs(s.dx);
+    const absY = Math.abs(s.dy);
+    const dt = Math.max(1, performance.now() - s.t0);
+
+    const fastEnough = dt < 600;
+    const farEnough = absX > 55;
+    const mostlyHorizontal = absX > absY * 1.2;
+
+    if (mostlyHorizontal && (farEnough || (fastEnough && absX > 35))) {
+      if (s.dx < 0) onLeft?.();
+      else onRight?.();
+    }
+  };
+
+  return { onPointerDown, onPointerMove, onPointerUp };
 }
 
 /* -------------------- component -------------------- */
@@ -48,21 +93,24 @@ export default function HomeSection({
   subtitle = "Acompañamos a inmobiliarias, constructoras y propietarios desde la planeación y el diseño hasta la gestión urbana del proyecto.",
   ctaText = "Contáctanos",
   accentColor = "#C0392B",
+  maxProjects = 10,
+  autoplayMs = 5000,
 }) {
   const IMG_API = (import.meta.env.VITE_IMAGES_API_BASE || "").replace(/\/$/, "");
-  // ✅ NUEVO endpoint
-  const SLIDES_URL = `${IMG_API}/api/home-slides`;
-
-  const buildImageUrlFromObject = (objectName) =>
-    `${IMG_API}/api/images?object=${encodeURIComponent(objectName)}&w=2200&q=85&format=jpeg`;
+  const PROJECT_LIST_URL = `${IMG_API}/api/home-slides`; // tu project-list.json
 
   const reducedMotion = usePrefersReducedMotion();
 
-  const [slides, setSlides] = useState([]);
-  const [active, setActive] = useState(0);
-  const [status, setStatus] = useState("loading"); // loading | ready | error
+  const [projects, setProjects] = useState([]);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [coverByProjectId, setCoverByProjectId] = useState({}); // { [id]: {id,url} }
+
+  const [status, setStatus] = useState("loading");
   const [errorMsg, setErrorMsg] = useState("");
+
+  // 🔧 Pausa SOLO por interacción real (NO por hover en todo el section)
   const [paused, setPaused] = useState(false);
+  const resumeTimerRef = useRef(null);
 
   const intervalRef = useRef(null);
 
@@ -72,14 +120,20 @@ export default function HomeSection({
     return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.85)`;
   }, [accentColor]);
 
-  // ✅ Load projects list (20) and pick 5 random
+  const pauseFor = (ms = 1500) => {
+    setPaused(true);
+    if (resumeTimerRef.current) window.clearTimeout(resumeTimerRef.current);
+    resumeTimerRef.current = window.setTimeout(() => setPaused(false), ms);
+  };
+
+  /* -------------------- Load JSON -------------------- */
   useEffect(() => {
     const controller = new AbortController();
 
-    const loadProjects = async () => {
+    const load = async () => {
       if (!IMG_API) {
         setStatus("error");
-        setErrorMsg("Falta VITE_IMAGES_API_BASE para consumir el endpoint.");
+        setErrorMsg("Falta VITE_IMAGES_API_BASE.");
         return;
       }
 
@@ -87,323 +141,463 @@ export default function HomeSection({
       setErrorMsg("");
 
       try {
-        const res = await fetch(SLIDES_URL, {
+        const res = await fetch(PROJECT_LIST_URL, {
           signal: controller.signal,
           cache: "no-store",
         });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-        if (!res.ok) {
-          let msg = `HTTP ${res.status}`;
-          try {
-            const j = await res.json();
-            if (j?.error) msg = `${msg} — ${j.error}`;
-          } catch {}
-          throw new Error(msg);
-        }
+        const data = await res.json();
+        if (!Array.isArray(data)) throw new Error("project-list.json debe ser un arreglo JSON.");
 
-        const all = await res.json();
-        if (!Array.isArray(all)) {
-          throw new Error("project-list.json debe ser un arreglo JSON (array).");
-        }
-
-        // ✅ toma 5 aleatorios (cada refresh)
-        const selected = pickRandomUnique(all.filter(Boolean), 5);
-
-        const mapped = selected
+        const cleaned = data
+          .filter(Boolean)
           .map((p, idx) => {
-            const imgObject = p.imgObject || p.img;
-            if (!imgObject) return null;
-
-            const img = /^https?:\/\//i.test(imgObject)
-              ? imgObject
-              : buildImageUrlFromObject(imgObject);
-
-            const meta = [p.type, p.location].filter(Boolean).join(" · ");
-
-            return {
-              id: p.id ?? idx + 1,
-              title: p.title ?? `Proyecto ${idx + 1}`,
-              meta,
-              fx: p.fx ?? "",
-              img,
-              // extra opcional (si lo quieres usar después)
-              role: p.role ?? "",
-              type: p.type ?? "",
-              location: p.location ?? "",
-            };
+            const id = p?.id ?? idx + 1;
+            const title = String(p?.title || `Proyecto ${idx + 1}`).trim();
+            const images = Array.isArray(p?.images) ? p.images.filter((x) => x?.url) : [];
+            return { id, title, images };
           })
-          .filter(Boolean);
+          .filter((p) => p.title && p.images.length);
 
-        if (!mapped.length) {
-          throw new Error("No hay proyectos válidos (falta imgObject/img).");
+        if (!cleaned.length) throw new Error("No hay proyectos válidos (sin images).");
+
+        const selected = shuffleCopy(cleaned).slice(0, Math.max(3, Number(maxProjects) || 10));
+
+        // 1 imagen random POR proyecto (estable mientras dura la sesión)
+        const covers = {};
+        for (const p of selected) {
+          const chosen = pickRandom(p.images);
+          if (chosen) covers[p.id] = chosen;
         }
 
-        setSlides(mapped);
-        setActive(0);
+        setCoverByProjectId(covers);
+        setProjects(selected);
+        setActiveIdx(0);
         setStatus("ready");
       } catch (err) {
-        setSlides([]);
+        if (err?.name === "AbortError") return;
+        setProjects([]);
         setStatus("error");
-        setErrorMsg(
-          `No se pudo cargar project-list.json desde GCS. (${err?.message || "error"})`
-        );
+        setErrorMsg(`No se pudo cargar project-list.json. (${err?.message || "error"})`);
       }
     };
 
-    loadProjects();
+    load();
     return () => controller.abort();
-  }, [IMG_API, SLIDES_URL]);
+  }, [IMG_API, PROJECT_LIST_URL, maxProjects]);
 
-  // ✅ Keep index valid if slides changes
-  useEffect(() => {
-    if (!slides.length) return;
-    setActive((prev) => (prev >= slides.length ? 0 : prev));
-  }, [slides.length]);
+  const activeProject = projects[activeIdx] || null;
+  const activeCover = activeProject ? coverByProjectId[activeProject.id] : null;
+  const activeUrl = activeCover?.url || "";
 
-  // ✅ Preload next image
-  useEffect(() => {
-    if (status !== "ready" || !slides.length) return;
-    const nextIdx = (active + 1) % slides.length;
-    const src = slides[nextIdx]?.img;
-    if (!src) return;
-    const img = new Image();
-    img.src = src;
-  }, [active, slides, status]);
+  const next = () => {
+    if (!projects.length) return;
+    setActiveIdx((i) => (i + 1) % projects.length);
+  };
 
-  // ✅ Autoplay
+  const prev = () => {
+    if (!projects.length) return;
+    setActiveIdx((i) => (i - 1 + projects.length) % projects.length);
+  };
+
+  const onDotClick = (i) => {
+    setActiveIdx(i);
+    pauseFor(Math.max(1500, autoplayMs + 600));
+  };
+
+  /* -------------------- Autoplay (SIEMPRE) -------------------- */
   useEffect(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
+
     if (reducedMotion) return;
-    if (status !== "ready" || slides.length < 2) return;
+    if (status !== "ready" || projects.length < 2) return;
     if (paused) return;
 
     intervalRef.current = setInterval(() => {
-      setActive((i) => (i + 1) % slides.length);
-    }, 6500);
+      setActiveIdx((i) => (i + 1) % projects.length);
+    }, autoplayMs);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       intervalRef.current = null;
     };
-  }, [status, slides.length, paused, reducedMotion]);
+  }, [status, projects.length, paused, reducedMotion, autoplayMs]);
 
-  const activeSlide = slides[active];
+  /* -------------------- Preload next -------------------- */
+  useEffect(() => {
+    if (status !== "ready" || projects.length < 2) return;
+    const nextIdx = (activeIdx + 1) % projects.length;
+    const nextProj = projects[nextIdx];
+    const nextUrl = nextProj ? coverByProjectId[nextProj.id]?.url : "";
+    if (!nextUrl) return;
+    const img = new Image();
+    img.src = nextUrl;
+  }, [activeIdx, projects, coverByProjectId, status]);
 
-  const goToActiveProject = () => {
-    if (!activeSlide) return;
+  /* -------------------- Fade between images -------------------- */
+  const [currUrl, setCurrUrl] = useState("");
+  const [prevUrl, setPrevUrl] = useState("");
+  const [entered, setEntered] = useState(true);
+  const currUrlRef = useRef("");
 
-    const card = document.getElementById(`project-${activeSlide.id}`);
-    if (card) {
-      card.scrollIntoView({ behavior: "smooth", block: "center" });
-      return;
+  useEffect(() => {
+    if (!activeUrl) return;
+    if (currUrlRef.current === activeUrl) return;
+
+    const old = currUrlRef.current;
+    setPrevUrl(old);
+    setCurrUrl(activeUrl);
+    currUrlRef.current = activeUrl;
+
+    setEntered(false);
+    const raf = requestAnimationFrame(() => setEntered(true));
+    const t = window.setTimeout(() => setPrevUrl(""), 900);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(t);
+    };
+  }, [activeUrl]);
+
+  /* -------------------- Swipe (featured) -------------------- */
+  const swipe = useSwipe({
+    onLeft: () => {
+      pauseFor(1200);
+      next();
+    },
+    onRight: () => {
+      pauseFor(1200);
+      prev();
+    },
+    disabled: status !== "ready" || projects.length < 2,
+  });
+
+  const onKeyDown = (e) => {
+    if (e.key === "ArrowLeft") {
+      pauseFor(1200);
+      prev();
     }
-
-    const section = document.getElementById("projects");
-    if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
-    else window.location.hash = "#projects";
+    if (e.key === "ArrowRight") {
+      pauseFor(1200);
+      next();
+    }
   };
 
-  const onDotClick = (i) => {
-    setActive(i);
-    setPaused(true);
-    window.setTimeout(() => setPaused(false), 7000);
-  };
-
+  /* -------------------- UI -------------------- */
   return (
     <section
       id="home"
       className="
         relative overflow-hidden transition-colors duration-300
         bg-white dark:bg-[#121212]
-        flex items-start
-        scroll-mt-[96px] md:scroll-mt-[112px]
-        pt-20 md:pt-24
-        pb-12 md:pb-14
+        pt-20 md:pt-24 pb-12 md:pb-14
         min-h-[calc(100svh-5rem)] md:min-h-[calc(100svh-6rem)]
+        scroll-mt-[96px] md:scroll-mt-[112px]
       "
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocusCapture={() => setPaused(true)}
-      onBlurCapture={() => setPaused(false)}
     >
-      {/* Background Carousel */}
+      {/* Background */}
       <div className="absolute inset-0 z-0">
-        {status === "ready" ? (
-          slides.map((s, idx) => {
-            const isActive = idx === active;
-            return (
-              <div
-                key={s.id}
+        {status === "ready" && (currUrl || prevUrl) ? (
+          <div className="absolute inset-0">
+            {/* prev layer */}
+            {prevUrl ? (
+              <ImageWithFallback
+                src={prevUrl}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover opacity-100"
+              />
+            ) : null}
+
+            {/* current layer fade-in */}
+            {currUrl ? (
+              <ImageWithFallback
+                src={currUrl}
+                alt={activeProject?.title || "Proyecto"}
                 className={[
-                  "absolute inset-0 transition-opacity duration-1000",
-                  isActive ? "opacity-100" : "opacity-0",
+                  "absolute inset-0 w-full h-full object-cover",
+                  reducedMotion ? "opacity-100" : entered ? "opacity-100" : "opacity-0",
+                  reducedMotion ? "" : "transition-opacity duration-700",
+                  reducedMotion ? "" : "transition-transform duration-[5000ms] ease-out",
+                  reducedMotion ? "scale-100" : "scale-[1.08]",
                 ].join(" ")}
-                aria-hidden={!isActive}
-              >
-                <ImageWithFallback
-                  src={s.img}
-                  alt={s.title}
-                  className={[
-                    "w-full h-full object-cover",
-                    reducedMotion ? "" : "transition-transform duration-[6500ms] ease-out",
-                    isActive && !reducedMotion ? "scale-[1.08]" : "scale-100",
-                    s.fx,
-                  ].join(" ")}
-                />
-              </div>
-            );
-          })
+              />
+            ) : null}
+          </div>
         ) : (
           <div className="absolute inset-0 bg-gray-900" />
         )}
 
         <div className="absolute inset-0 bg-black/65 dark:bg-black/75" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/25" />
-
-        {status === "ready" && (
-          <button
-            type="button"
-            onClick={goToActiveProject}
-            className="
-              absolute z-20
-              right-4 sm:right-6
-              bottom-10 sm:bottom-12
-              inline-flex items-center gap-2
-              rounded-full px-3 py-2
-              text-xs sm:text-sm font-semibold
-              backdrop-blur-md shadow-lg
-              transition hover:scale-[1.02] active:scale-[0.98]
-              bg-white/90 text-gray-900 border border-gray-200/80 hover:bg-white
-              dark:bg-black/45 dark:text-white dark:border-white/20 dark:hover:bg-black/60
-            "
-            aria-label={`Ver proyecto: ${activeSlide?.title}`}
-            title="Ver proyecto"
-          >
-            Ver proyecto
-            <ArrowUpRight size={16} className="opacity-90" />
-          </button>
-        )}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/20" />
       </div>
 
-      {/* Content */}
       <div className="relative z-10 w-full container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl">
-          <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-2xl p-6 sm:p-8 md:p-10">
-            {status !== "ready" && (
-              <div className="mb-6 text-sm sm:text-base text-white/80">
-                {status === "loading" ? "Cargando proyectos..." : null}
-                {status === "error" ? (
+        <div className="grid lg:grid-cols-12 gap-6 lg:gap-10 items-start">
+          {/* Featured */}
+          <div className="order-1 lg:order-2 lg:col-span-7">
+            <div
+              className="
+                rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-2xl overflow-hidden
+                select-none
+              "
+              tabIndex={0}
+              onKeyDown={onKeyDown}
+              onMouseEnter={() => setPaused(true)}
+              onMouseLeave={() => setPaused(false)}
+              onFocusCapture={() => setPaused(true)}
+              onBlurCapture={() => setPaused(false)}
+              onPointerDown={(e) => {
+                pauseFor(1500);
+                swipe.onPointerDown(e);
+              }}
+              onPointerMove={swipe.onPointerMove}
+              onPointerUp={swipe.onPointerUp}
+              onPointerCancel={swipe.onPointerUp}
+              style={{ touchAction: "pan-y" }}
+              aria-label="Carrusel de proyectos (desliza izquierda o derecha)"
+            >
+              <div className="relative w-full aspect-[16/10] sm:aspect-[16/9]">
+                {status === "ready" && (currUrl || prevUrl) ? (
                   <>
-                    <div className="font-semibold">Error cargando proyectos</div>
-                    <div className="mt-1 text-white/70">{errorMsg}</div>
+                    {prevUrl ? (
+                      <ImageWithFallback
+                        src={prevUrl}
+                        alt=""
+                        className="absolute inset-0 w-full h-full object-cover opacity-100"
+                      />
+                    ) : null}
+
+                    {currUrl ? (
+                      <ImageWithFallback
+                        src={currUrl}
+                        alt={activeProject?.title || "Proyecto"}
+                        className={[
+                          "absolute inset-0 w-full h-full object-cover",
+                          reducedMotion ? "opacity-100" : entered ? "opacity-100" : "opacity-0",
+                          reducedMotion ? "" : "transition-opacity duration-700",
+                        ].join(" ")}
+                      />
+                    ) : null}
                   </>
-                ) : null}
+                ) : (
+                  <div className="w-full h-full bg-black/40" />
+                )}
+
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                {/* Title tag */}
+                {status === "ready" && activeProject?.title && (
+                  <div className="absolute bottom-3 left-3 right-3">
+                    <div className="inline-flex items-center gap-2 rounded-xl px-3 py-2 bg-black/35 border border-white/10 backdrop-blur-md">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: accentColor }} />
+                      <span className="text-white font-semibold text-sm sm:text-base">
+                        {activeProject.title}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Arrows */}
+                {status === "ready" && projects.length > 1 && (
+                  <div className="absolute top-3 right-3 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        pauseFor(1500);
+                        prev();
+                      }}
+                      className="
+                        inline-flex items-center justify-center
+                        w-10 h-10 rounded-full
+                        bg-black/35 border border-white/15
+                        text-white/90 hover:bg-black/50 transition
+                        backdrop-blur-md
+                      "
+                      aria-label="Anterior"
+                    >
+                      <ChevronLeft size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        pauseFor(1500);
+                        next();
+                      }}
+                      className="
+                        inline-flex items-center justify-center
+                        w-10 h-10 rounded-full
+                        bg-black/35 border border-white/15
+                        text-white/90 hover:bg-black/50 transition
+                        backdrop-blur-md
+                      "
+                      aria-label="Siguiente"
+                    >
+                      <ChevronRight size={18} />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Dots */}
+              {status === "ready" && projects.length > 1 && (
+                <div className="px-4 sm:px-5 pb-4 pt-3 flex items-center justify-center gap-2">
+                  {projects.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => onDotClick(i)}
+                      aria-label={`Ver proyecto ${i + 1}`}
+                      className={[
+                        "h-2.5 rounded-full transition-all",
+                        i === activeIdx ? "w-9 bg-white" : "w-2.5 bg-white/40 hover:bg-white/70",
+                      ].join(" ")}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Thumbnails SOLO en desktop */}
+            {status === "ready" && projects.length > 0 && (
+              <div className="mt-5 hidden lg:block">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-white/85 font-semibold">Proyectos</div>
+                  <div className="text-white/60 text-xs sm:text-sm">Click para cambiar</div>
+                </div>
+
+                <div
+                  className="
+                    flex gap-3 overflow-x-auto pb-2
+                    snap-x snap-mandatory
+                    [-ms-overflow-style:none] [scrollbar-width:none]
+                  "
+                  style={{ WebkitOverflowScrolling: "touch" }}
+                >
+                  <style>{`
+                    #home .no-scrollbar::-webkit-scrollbar { display: none; }
+                  `}</style>
+
+                  <div className="no-scrollbar flex gap-3 overflow-x-auto snap-x snap-mandatory w-full">
+                    {projects.map((p, i) => {
+                      const isActive = i === activeIdx;
+                      const cover = coverByProjectId[p.id];
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => {
+                            setActiveIdx(i);
+                            pauseFor(Math.max(1500, autoplayMs + 600));
+                          }}
+                          aria-pressed={isActive}
+                          className={[
+                            "snap-start flex-none",
+                            "w-[30%] xl:w-[24%]",
+                            "rounded-2xl overflow-hidden",
+                            "border transition shadow-lg",
+                            isActive ? "border-white/30 ring-2 ring-white/20" : "border-white/10 hover:border-white/20",
+                            "bg-white/5 backdrop-blur-md",
+                          ].join(" ")}
+                        >
+                          <div className="relative w-full aspect-[4/3]">
+                            <ImageWithFallback src={cover?.url} alt={p.title} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+                            <div className="absolute bottom-0 left-0 right-0 p-3">
+                              <div className="text-left text-white font-semibold text-sm leading-snug">{p.title}</div>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
+          </div>
 
-            {status === "ready" && (
-              <div className="flex flex-wrap items-center gap-3 mb-6">
+          {/* Text */}
+          <div className="order-2 lg:order-1 lg:col-span-5">
+            <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-2xl p-6 sm:p-8">
+              {status !== "ready" && (
+                <div className="text-sm sm:text-base text-white/80">
+                  {status === "loading" ? "Cargando proyectos..." : null}
+                  {status === "error" && (
+                    <>
+                      <div className="font-semibold">Error</div>
+                      <div className="mt-1 text-white/70">{errorMsg}</div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 mb-5">
                 <span className="h-1 w-14 rounded-full" style={{ backgroundColor: accentColor }} />
+                {status === "ready" && activeProject?.title && (
+                  <span className="text-xs sm:text-sm text-white/80">
+                    Proyecto destacado:{" "}
+                    <span className="text-white font-semibold">{activeProject.title}</span>
+                  </span>
+                )}
+              </div>
 
-                <button
-                  type="button"
-                  onClick={goToActiveProject}
+              <h1 className="text-white text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight tracking-tight">
+                {headline}
+              </h1>
+
+              <p className="mt-4 text-base sm:text-lg md:text-xl text-white/85 leading-relaxed">
+                {subtitle}
+              </p>
+
+              <div className="mt-5 space-y-3 text-sm sm:text-base text-white/80 leading-relaxed">
+                <p className="font-semibold text-white/90">
+                  EMPRESAS INMOBILIARIAS, CONSTRUCTORAS Y PROPIETARIOS DE TERRENOS
+                </p>
+                <p>
+                  Integramos estudios, proyecto, planeación y gestión urbana para llevar tu desarrollo de inicio a fin.
+                </p>
+              </div>
+
+              <div className="mt-6 flex flex-col gap-3 sm:gap-4">
+                <a
+                  href="#services"
                   className="
-                    inline-flex items-center gap-2
-                    rounded-full px-3 py-1.5
-                    bg-white/5 hover:bg-white/10
-                    border border-white/10
-                    text-xs sm:text-sm
-                    text-white/80 hover:text-white
-                    transition
+                    group inline-flex items-center justify-center gap-2
+                    px-7 py-4 text-base sm:text-lg font-semibold rounded-xl
+                    border border-white/50 text-white
+                    bg-white/12 hover:bg-white/18
+                    backdrop-blur-md shadow-lg
+                    transition-all
                   "
                 >
-                  <span className="text-white/70">Proyecto destacado:</span>
-                  <span className="text-white font-semibold">{activeSlide?.title}</span>
-                  <ArrowUpRight size={14} className="opacity-80" />
-                </button>
+                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white/15 group-hover:bg-white/20 transition">
+                    <Briefcase size={18} className="opacity-95" />
+                  </span>
+                  Servicios
+                </a>
 
-                <span className="text-xs sm:text-sm text-white/60">{activeSlide?.meta}</span>
+                <a
+                  href="#contact"
+                  className="
+                    inline-flex items-center justify-center gap-2
+                    px-7 py-4 text-base sm:text-lg font-semibold
+                    rounded-xl text-white shadow-lg
+                    transition-all hover:brightness-110
+                  "
+                  style={{ backgroundColor: accentRgba85 }}
+                >
+                  <Headset size={18} className="opacity-95" />
+                  {ctaText}
+                </a>
               </div>
-            )}
-
-            <h1 className="text-white text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight tracking-tight">
-              {headline}
-            </h1>
-
-            <p className="mt-4 text-base sm:text-lg md:text-xl text-white/85 leading-relaxed">
-              {subtitle}
-            </p>
-
-            <div className="mt-6 space-y-3 text-sm sm:text-base text-white/80 leading-relaxed">
-              <p className="font-semibold text-white/90">
-                EMPRESAS INMOBILIARIAS, CONSTRUCTORAS Y PROPIETARIOS DE TERRENOS
-              </p>
-              <p>
-                Integramos estudios, proyecto, planeación y gestión urbana para llevar tu desarrollo de inicio a fin.
-              </p>
             </div>
-
-            <div className="mt-7 flex flex-col gap-3 sm:gap-4">
-              <a
-                href="#services"
-                className="
-                  group inline-flex items-center justify-center gap-2
-                  px-7 py-4 text-base sm:text-lg font-semibold rounded-xl
-                  border border-white/50 text-white
-                  bg-white/12 hover:bg-white/18
-                  backdrop-blur-md shadow-lg
-                  transition-all
-                "
-              >
-                <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white/15 group-hover:bg-white/20 transition">
-                  <Briefcase size={18} className="opacity-95" />
-                </span>
-                Conoce nuestros servicios
-                <ArrowUpRight size={18} className="opacity-90 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" />
-              </a>
-
-              <a
-                href="#contact"
-                className="
-                  inline-flex items-center justify-center gap-2
-                  px-7 py-4 text-base sm:text-lg font-semibold
-                  rounded-xl text-white shadow-lg
-                  transition-all hover:brightness-110
-                "
-                style={{ backgroundColor: accentRgba85 }}
-              >
-                <Headset size={18} className="opacity-95" />
-                {ctaText}
-              </a>
-            </div>
-
-            {status === "ready" && (
-              <div className="mt-6 flex items-center gap-2 overflow-x-auto py-1">
-                {slides.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => onDotClick(i)}
-                    aria-label={`Ver proyecto ${i + 1}`}
-                    className={[
-                      "h-2.5 rounded-full transition-all flex-none",
-                      i === active ? "w-8 bg-white" : "w-2.5 bg-white/40 hover:bg-white/70",
-                    ].join(" ")}
-                  />
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>
 
-      <div
-        className="absolute bottom-0 left-0 w-full h-2 pointer-events-none"
-        style={{ backgroundColor: accentColor }}
-      />
+      <div className="absolute bottom-0 left-0 w-full h-2 pointer-events-none" style={{ backgroundColor: accentColor }} />
     </section>
   );
 }

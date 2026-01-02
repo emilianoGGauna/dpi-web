@@ -53,7 +53,7 @@ export default function ContactSection({ accentColor = "#C0392B" }) {
     e.preventDefault();
     if (!validateForm()) return;
 
-    const phoneE164 = "523326374701";
+    const phoneE164 = "523331712076";
 
     const text = `Hola DPI, quiero ponerme en contacto.
 

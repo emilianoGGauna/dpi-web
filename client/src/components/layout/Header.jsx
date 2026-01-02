@@ -17,7 +17,6 @@ export default function Header({
     () => [
       { name: "Inicio", href: "#" },
       { name: "Quiénes Somos", href: "#about" },
-      { name: "Proyectos", href: "#projects" },
       { name: "Servicios", href: "#services" },
       { name: "Metodología", href: "#methodology" },
       { name: "Contacto", href: "#contact" },
@@ -106,7 +105,7 @@ export default function Header({
                   {logoText}
                 </span>
                 <span className="text-[12px] md:text-sm font-medium text-gray-900 dark:text-white/90">
-                  Diseño Planeación Integral
+                  Diseño y Planeación Integral
                 </span>
               </div>
 
@@ -183,7 +182,7 @@ export default function Header({
                       {logoText}
                     </span>
                     <span className="text-sm font-medium text-gray-900 dark:text-white/90 truncate">
-                      Diseño Planeación Integral
+                      Diseño y Planeación Integral
                     </span>
                   </div>
                   <div className="text-[11px] text-gray-600 dark:text-white/55">

@@ -7,7 +7,6 @@ import HomeSection from "./components/sections/HomeSection";
 import AboutSection from "./components/sections/AboutSection";
 import WhyDPISection from "./components/sections/WhyDPISection";
 import ServicesSection from "./components/sections/ServicesSection";
-import ProjectsSection from "./components/sections/ProjectsSection";
 import MethodologySection from "./components/sections/MethodologySection";
 import ClientsSection from "./components/sections/ClientsSection";
 import ContactSection from "./components/sections/ContactSection";
@@ -47,9 +46,6 @@ export default function DPILandingPage({
 
       {/* About */}
       {showAboutSection && <AboutSection accentColor={accentColor} />}
-
-      {/* Projects */}
-      {showProjectsSection && <ProjectsSection accentColor={accentColor} />}
 
       {/* Services */}
       {showServicesSection && <ServicesSection accentColor={accentColor} />}
