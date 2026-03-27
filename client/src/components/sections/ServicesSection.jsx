@@ -1,259 +1,391 @@
-import { useMemo, useState } from "react";
-import {
-  Compass,
-  LineChart,
-  Scale,
-  Building2,
-  BadgeCheck,
-  Layers,
-  FileCheck2,
-  DraftingCompass,
-  FileText,
-  ChevronDown,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Filter, MapPin } from "lucide-react";
+import ImageWithFallback from "../ui/ImageWithFallback";
+import { getImagesApiBase } from "../../lib/imageApi";
+import { normalizeProjects, toSlug } from "../../lib/projects";
 
-export default function ServicesSection({ accentColor = "#C0392B" }) {
-  const [openId, setOpenId] = useState(null);
+const SERVICE_DEFINITIONS = [
+  {
+    id: "planeacion-urbana",
+    title: "Planeación urbana",
+    overview:
+      "Planes maestros y estrategias para estructurar crecimiento, conectividad y valor urbano sostenible.",
+    keywords: ["planeacion urbana", "gestion urbana", "urbanizacion"],
+  },
+  {
+    id: "estudios-viabilidad",
+    title: "Estudios de viabilidad",
+    overview:
+      "Evaluación de potencial normativo, comercial y financiero para decisiones de inversión con menor riesgo.",
+    keywords: ["viabilidad", "desarrollo inmobiliario"],
+  },
+  {
+    id: "estudios-movilidad",
+    title: "Estudios de movilidad",
+    overview:
+      "Diagnóstico de tránsito, accesibilidad y desempeño vial para proyectos urbanos de alto impacto.",
+    keywords: ["movilidad", "integracion urbana"],
+  },
+  {
+    id: "uso-suelo-normatividad",
+    title: "Uso de suelo y normatividad",
+    overview:
+      "Lectura regulatoria integral para alinear uso permitido, densidades y estrategia de permisos.",
+    keywords: ["uso de suelo", "normatividad", "gestion urbana"],
+  },
+  {
+    id: "desarrollo-llave-mano",
+    title: "Desarrollo inmobiliario y proyectos llave en mano",
+    overview:
+      "Coordinación de planeación, gestión y ejecución para proyectos completos con control técnico y operativo.",
+    keywords: ["desarrollo inmobiliario", "llave en mano", "viabilidad"],
+  },
+  {
+    id: "integracion-urbana",
+    title: "Proyecto de integración urbana",
+    overview:
+      "Intervenciones que vinculan nuevos desarrollos con tejido existente, equipamientos y contexto local.",
+    keywords: ["integracion urbana", "planeacion urbana", "movilidad"],
+  },
+  {
+    id: "urbanizacion-definitivo",
+    title: "Proyecto definitivo de urbanización",
+    overview:
+      "Desarrollo técnico integral para infraestructura, imagen urbana y funcionalidad operativa del proyecto.",
+    keywords: ["urbanizacion", "uso de suelo"],
+  },
+  {
+    id: "gestion-urbana",
+    title: "Gestión urbana",
+    overview:
+      "Acompañamiento institucional para autorizaciones y trámites ante instancias federales, estatales y municipales.",
+    keywords: ["gestion urbana", "uso de suelo"],
+  },
+  {
+    id: "riesgo",
+    title: "Riesgo",
+    overview:
+      "Estudios técnicos para prevención de riesgo y definición de medidas de mitigación en desarrollo urbano.",
+    keywords: ["riesgo", "viabilidad", "ambiental"],
+  },
+  {
+    id: "ambiental",
+    title: "Ambiental",
+    overview:
+      "Análisis ambiental y rutas de cumplimiento para garantizar viabilidad y continuidad regulatoria del proyecto.",
+    keywords: ["ambiental", "viabilidad"],
+  },
+];
 
-  const services = useMemo(
-    () => [
-      {
-        id: "planeacion",
-        title: "Planeación urbana",
-        desc: "Planes maestros y estrategias para un crecimiento ordenado y viable.",
-        icon: Compass,
-        details: [
-          "Diseñamos y coordinamos planes maestros, lineamientos y criterios de ordenamiento territorial para alinear usos, etapas, movilidad y equipamientos.",
-          "Aterrizamos la visión del proyecto en reglas claras para su implantación y evolución en el tiempo.",
-        ],
-      },
-      {
-        id: "viabilidad",
-        title: "Estudios de viabilidad",
-        desc: "Evaluación financiera y de mercado para medir el potencial del proyecto.",
-        icon: LineChart,
-        details: [
-          "Analizamos demanda, escenarios, sensibilidad, costos e ingresos para validar la factibilidad y mejorar la toma de decisiones.",
-          "Entregables típicos: supuestos, escenarios, riesgos y recomendaciones de optimización.",
-        ],
-      },
-      {
-        id: "usosuelo",
-        title: "Uso de suelo y normatividad",
-        desc: "Análisis regulatorio para cumplir y maximizar la viabilidad del predio.",
-        icon: Scale,
-        details: [
-          "Revisamos instrumentos urbanos aplicables, compatibilidades, restricciones, densidades, coeficientes y condicionantes.",
-          "Identificamos rutas de cumplimiento y oportunidades para viabilizar el proyecto con certeza.",
-        ],
-      },
-      {
-        id: "desarrollo",
-        title: "Desarrollo inmobiliario",
-        desc: "Gestión integral desde la concepción hasta la ejecución del proyecto.",
-        icon: Building2,
-        details: [
-          "Coordinamos disciplinas y entregables clave (técnicos, urbanos y de gestión) para mantener alineados alcance, tiempos y riesgos.",
-          "Enfoque en continuidad: del diagnóstico a la implementación con control de hitos.",
-        ],
-      },
-      {
-        id: "llave",
-        title: "Proyectos llave en mano",
-        desc: "Soluciones completas que reducen riesgos y optimizan tiempos del inversionista.",
-        icon: BadgeCheck,
-        details: [
-          "Integramos planeación, gestión y coordinación para ejecutar con mayor certidumbre en tiempos, costos y cumplimiento.",
-          "Ideal cuando se busca un solo equipo responsable de coordinar el proceso completo.",
-        ],
-      },
-      {
-        id: "integracion",
-        title: "Proyectos de integración urbana",
-        desc: "Nuevos desarrollos que se conectan con lo existente sin perder el contexto.",
-        icon: Layers,
-        details: [
-          "Realizamos proyectos que incorporan un nuevo desarrollo a la ciudad existente o transforman lo existente para responder a nuevas exigencias, manteniendo coherencia con su entorno consolidado.",
-          "La integración se conceptualiza de forma compatible con los contenidos funcionales existentes, conforme a lo establecido en los planes de desarrollo urbano.",
-        ],
-      },
-      {
-        id: "gestion",
-        title: "Gestión urbana",
-        desc: "Gestoría y coordinación de trámites para ejecutar usos del suelo con certeza legal.",
-        icon: FileCheck2,
-        details: [
-          "Llevamos a la práctica la ejecución de determinaciones de uso de suelo, planeación urbana y ordenamiento territorial mediante la gestión ante instancias federales, estatales y/o municipales.",
-          "Acompañamos el emplazamiento de usos comerciales, industriales, de servicios y construcción, así como desarrollos habitacionales.",
-          "Objetivo: optimizar tiempos, reducir fricción en trámites y asegurar la ejecución final con certeza legal.",
-        ],
-      },
-      {
-        id: "urbanizacion",
-        title: "Proyecto definitivo de urbanización",
-        desc: "Integración de proyectos para acciones urbanísticas con altos estándares y normativa.",
-        icon: DraftingCompass,
-        details: [
-          "Elaboramos e integramos el conjunto de proyectos necesarios para acciones urbanísticas de distintos usos y destinos, maximizando estándares de funcionamiento y rentabilidad.",
-          "Incluye análisis programático y coordinación entre instalaciones, equipamientos y mobiliario urbano para el correcto funcionamiento del desarrollo.",
-          "Se desarrolla conforme a la legislación vigente (Jalisco y otras entidades, según aplique).",
-        ],
-      },
-      {
-        id: "especiales",
-        title: "Estudios y proyectos especiales",
-        desc: "Soporte técnico-legal para autorizaciones, registro y regularización urbana.",
-        icon: FileText,
-        details: [
-          "La normativa urbana prevé procedimientos para autorizar proyectos urbanos, de edificación, régimen en condominio, subdivisiones y/o relotificaciones; así como actuaciones registrales ante Notario, Registro Público y Catastro.",
-          "Ofrecemos capacidad técnica y legal para gestionar estos procesos, protegiendo el patrimonio y brindando certeza jurídica.",
-        ],
-        bullets: [
-          "Plan parcial de desarrollo urbano",
-          "Plan maestro de ordenamiento territorial",
-          "Estudio de asoleamientos e imagen urbana",
-          "Estudio de impacto al tránsito",
-          "Impacto ambiental / informe preventivo / factibilidad ambiental",
-          "Régimen de propiedad en condominio",
-          "Subdivisiones y/o relotificaciones",
-          "Y otros estudios requeridos por la autoridad",
-        ],
-      },
-    ],
-    []
+function normalizeTag(tag = "") {
+  return String(tag)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim();
+}
+
+function inferService(project, services) {
+  if (project.serviceHints.length) {
+    const byHint = services.find((s) => project.serviceHints.includes(s.id));
+    if (byHint) return byHint.id;
+  }
+
+  const searchPool = [project.category, project.status, ...project.tags]
+    .map(normalizeTag)
+    .join(" ");
+
+  const matched = services.find((srv) =>
+    srv.keywords.some((keyword) => searchPool.includes(normalizeTag(keyword)))
   );
 
-  const onToggle = (id) => setOpenId((cur) => (cur === id ? null : id));
+  return matched?.id || services[0]?.id;
+}
 
-  const sectionBg = "bg-gray-50 dark:bg-[#0B0C10]";
-  const cardBg = "bg-white dark:bg-[#101114]";
-  const cardBorder = "border border-gray-200 dark:border-white/10";
-  const mutedText = "text-gray-600 dark:text-white/70";
-  const titleText = "text-gray-900 dark:text-white";
+export default function ServicesSection({ accentColor = "#7E1F2A" }) {
+  const [activeServiceId, setActiveServiceId] = useState(SERVICE_DEFINITIONS[0].id);
+  const [activeTag, setActiveTag] = useState("Todos");
+  const [activeCategory, setActiveCategory] = useState("Todos");
+  const [activeStatus, setActiveStatus] = useState("Todos");
+
+  const [status, setStatus] = useState("loading");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [projectsByService, setProjectsByService] = useState({});
+
+  const IMG_API = getImagesApiBase();
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const load = async () => {
+      if (!IMG_API) {
+        setStatus("error");
+        setErrorMsg("Falta VITE_IMAGES_API_BASE para cargar proyectos desde el backend.");
+        return;
+      }
+
+      setStatus("loading");
+
+      try {
+        const res = await fetch(`${IMG_API}/api/home-slides`, {
+          signal: controller.signal,
+          cache: "no-store",
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const raw = await res.json();
+        if (!Array.isArray(raw)) throw new Error("Se esperaba un arreglo de proyectos.");
+
+        const normalized = normalizeProjects(raw).map((project) => ({
+          ...project,
+          serviceId: inferService(project, SERVICE_DEFINITIONS),
+          tags: project.tags.length
+            ? project.tags
+            : [toSlug(project.category).replaceAll("-", " ")],
+        }));
+
+        const grouped = SERVICE_DEFINITIONS.reduce((acc, service) => {
+          acc[service.id] = normalized.filter((project) => project.serviceId === service.id);
+          return acc;
+        }, {});
+
+        setProjectsByService(grouped);
+        setStatus("ready");
+      } catch (err) {
+        if (err?.name === "AbortError") return;
+        setStatus("error");
+        setErrorMsg(`No se pudo cargar /api/home-slides (${err?.message || "error"}).`);
+      }
+    };
+
+    load();
+    return () => controller.abort();
+  }, [IMG_API]);
+
+  const activeService =
+    SERVICE_DEFINITIONS.find((service) => service.id === activeServiceId) || SERVICE_DEFINITIONS[0];
+
+  const serviceProjects = useMemo(
+    () => projectsByService[activeService.id] || [],
+    [projectsByService, activeService.id]
+  );
+
+  const availableTags = useMemo(() => {
+    const set = new Set();
+    serviceProjects.forEach((project) => project.tags.forEach((tag) => set.add(tag)));
+    return ["Todos", ...Array.from(set).slice(0, 10)];
+  }, [serviceProjects]);
+
+  const availableCategories = useMemo(() => {
+    const values = new Set(serviceProjects.map((project) => project.category).filter(Boolean));
+    return ["Todos", ...Array.from(values)];
+  }, [serviceProjects]);
+
+  const availableStatuses = useMemo(() => {
+    const values = new Set(serviceProjects.map((project) => project.status).filter(Boolean));
+    return ["Todos", ...Array.from(values)];
+  }, [serviceProjects]);
+
+  useEffect(() => {
+    setActiveTag("Todos");
+    setActiveCategory("Todos");
+    setActiveStatus("Todos");
+  }, [activeService.id]);
+
+  const filteredProjects = useMemo(() => {
+    return serviceProjects.filter((project) => {
+      const matchesTag = activeTag === "Todos" || project.tags.includes(activeTag);
+      const matchesCategory = activeCategory === "Todos" || project.category === activeCategory;
+      const matchesStatus = activeStatus === "Todos" || project.status === activeStatus;
+      return matchesTag && matchesCategory && matchesStatus;
+    });
+  }, [serviceProjects, activeTag, activeCategory, activeStatus]);
+
+  const featuredProject = filteredProjects[0] || serviceProjects[0] || null;
+  const supportProjects = filteredProjects.slice(featuredProject ? 1 : 0, 7);
 
   return (
-    <section
-      id="services"
-      className={`py-16 md:py-24 ${sectionBg} transition-colors duration-300`}
-    >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
-        {/* Title */}
+    <section id="services" className="py-16 md:py-24 bg-[#090A0D] text-white">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         <div className="text-center mb-10">
-          <h2 className={`text-3xl md:text-4xl font-bold ${titleText}`}>
-            Servicios
-          </h2>
-          <div
-            className="w-20 h-1 mx-auto mt-4 rounded"
-            style={{ backgroundColor: accentColor }}
-          />
-          <p className={`mt-4 text-sm sm:text-base ${mutedText} max-w-3xl mx-auto`}>
-            Servicios integrales para planear, viabilizar, gestionar y ejecutar proyectos urbanos e
-            inmobiliarios con certeza técnica y legal.
+          <p className="text-xs tracking-[0.2em] uppercase text-white/55">Servicios + Proyectos</p>
+          <h2 className="text-3xl md:text-5xl font-semibold mt-3">Portafolio por especialidad</h2>
+          <div className="w-24 h-1 mx-auto mt-4 rounded" style={{ backgroundColor: accentColor }} />
+          <p className="text-white/70 mt-5 max-w-3xl mx-auto">
+            Explora cada servicio con casos relacionados, imágenes servidas por el pipeline de Google Cloud y filtros editoriales.
           </p>
         </div>
 
-        {/* Cards */}
-        <div className="grid gap-5 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {services.map((srv) => {
-            const Icon = srv.icon;
-            const isOpen = openId === srv.id;
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-8">
+          {SERVICE_DEFINITIONS.map((service) => (
+            <button
+              key={service.id}
+              type="button"
+              onClick={() => setActiveServiceId(service.id)}
+              className={[
+                "whitespace-nowrap px-4 py-2.5 rounded-full border text-sm transition",
+                activeService.id === service.id
+                  ? "border-transparent text-white"
+                  : "border-white/15 bg-white/[0.03] text-white/70 hover:text-white hover:bg-white/[0.08]",
+              ].join(" ")}
+              style={activeService.id === service.id ? { backgroundColor: accentColor } : undefined}
+            >
+              {service.title}
+            </button>
+          ))}
+        </div>
 
-            return (
-              <div
-                key={srv.id}
-                className={[
-                  "relative",
-                  "rounded-2xl",
-                  cardBg,
-                  cardBorder,
-                  "shadow-sm hover:shadow-md",
-                  "transition-all",
-                  "overflow-hidden",
-                ].join(" ")}
-              >
-                {/* Main clickable area (reserve space for arrow) */}
+        <div className="rounded-3xl border border-white/10 bg-[#101218] p-5 md:p-7">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 mb-6">
+            <div>
+              <h3 className="text-2xl md:text-3xl font-semibold">{activeService.title}</h3>
+              <p className="text-white/70 mt-2 max-w-3xl">{activeService.overview}</p>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-white/55">
+              <Filter size={14} />
+              <span>{filteredProjects.length} proyectos visibles</span>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3 mb-6">
+            <select
+              value={activeCategory}
+              onChange={(e) => setActiveCategory(e.target.value)}
+              className="bg-[#0A0C11] border border-white/15 rounded-xl px-3 py-2.5 text-sm"
+            >
+              {availableCategories.map((item) => (
+                <option key={item} value={item}>
+                  Categoría: {item}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={activeStatus}
+              onChange={(e) => setActiveStatus(e.target.value)}
+              className="bg-[#0A0C11] border border-white/15 rounded-xl px-3 py-2.5 text-sm"
+            >
+              {availableStatuses.map((item) => (
+                <option key={item} value={item}>
+                  Estatus: {item}
+                </option>
+              ))}
+            </select>
+
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {availableTags.map((tag) => (
                 <button
+                  key={tag}
                   type="button"
-                  onClick={() => onToggle(srv.id)}
-                  className="w-full text-left p-5 sm:p-6 pr-14 pb-12 flex items-start gap-4"
-                  aria-expanded={isOpen}
-                >
-                  <div
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center border shrink-0"
-                    style={{
-                      backgroundColor: `${accentColor}18`,
-                      borderColor: "rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    <Icon size={20} style={{ color: accentColor }} />
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <h3 className={`text-base sm:text-lg font-semibold leading-snug ${titleText}`}>
-                      {srv.title}
-                    </h3>
-                    <p className={`mt-1 text-sm leading-relaxed ${mutedText}`}>
-                      {srv.desc}
-                    </p>
-                  </div>
-                </button>
-
-                {/* Arrow (always bottom-right, never collides) */}
-                <button
-                  type="button"
-                  onClick={() => onToggle(srv.id)}
-                  className="absolute bottom-4 right-4 inline-flex items-center justify-center w-9 h-9 rounded-xl border transition"
-                  style={{
-                    borderColor: "rgba(255,255,255,0.10)",
-                    backgroundColor: isOpen ? `${accentColor}14` : "rgba(255,255,255,0.04)",
-                  }}
-                  aria-label={isOpen ? "Cerrar detalle" : "Abrir detalle"}
-                  title={isOpen ? "Cerrar" : "Abrir"}
-                >
-                  <ChevronDown
-                    size={18}
-                    style={{
-                      color: isOpen ? accentColor : "rgba(148,163,184,0.90)",
-                      transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                      transition: "transform 180ms ease",
-                    }}
-                  />
-                </button>
-
-                {/* Accordion body */}
-                <div
+                  onClick={() => setActiveTag(tag)}
                   className={[
-                    "px-5 sm:px-6",
-                    "transition-[max-height,opacity] duration-300 ease-out",
-                    "overflow-hidden",
-                    isOpen ? "opacity-100" : "opacity-0",
+                    "px-3 py-2 rounded-full border text-xs whitespace-nowrap transition",
+                    tag === activeTag
+                      ? "text-white border-transparent"
+                      : "text-white/70 border-white/15 hover:text-white hover:bg-white/10",
                   ].join(" ")}
-                  style={{ maxHeight: isOpen ? 520 : 0 }}
+                  style={tag === activeTag ? { backgroundColor: accentColor } : undefined}
                 >
-                  <div className="pb-5 sm:pb-6">
-                    <div className={`text-sm ${mutedText} leading-relaxed space-y-2`}>
-                      {(srv.details || []).map((p, idx) => (
-                        <p key={idx}>{p}</p>
-                      ))}
-                    </div>
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
 
-                    {srv.bullets?.length ? (
-                      <div className="mt-4 rounded-xl border border-gray-200/70 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-4">
-                        <div className={`text-sm font-semibold ${titleText}`}>Incluye</div>
-                        <ul className={`mt-2 text-sm ${mutedText} list-disc pl-5 space-y-1`}>
-                          {srv.bullets.map((b) => (
-                            <li key={b}>{b}</li>
-                          ))}
-                        </ul>
+          {status === "loading" && (
+            <div className="grid lg:grid-cols-[1.5fr_1fr] gap-5 animate-pulse">
+              <div className="h-[320px] rounded-2xl bg-white/10" />
+              <div className="grid gap-4">
+                <div className="h-[152px] rounded-2xl bg-white/10" />
+                <div className="h-[152px] rounded-2xl bg-white/10" />
+              </div>
+            </div>
+          )}
+
+          {status === "error" && (
+            <div className="rounded-2xl border border-[#7E1F2A]/40 bg-[#7E1F2A]/10 p-5 text-white/90">
+              {errorMsg}
+            </div>
+          )}
+
+          {status === "ready" && (
+            <>
+              {featuredProject ? (
+                <div className="grid lg:grid-cols-[1.45fr_1fr] gap-5">
+                  <article className="rounded-2xl overflow-hidden border border-white/10 bg-[#0B0C10]">
+                    <div className="aspect-[16/9] relative">
+                      <ImageWithFallback
+                        src={featuredProject.imageUrl}
+                        alt={featuredProject.title}
+                        fallbackLabel="Imagen principal no disponible"
+                        className="absolute inset-0"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-5 md:p-7">
+                        <p className="text-xs uppercase tracking-[0.16em] text-white/60">Proyecto destacado</p>
+                        <h4 className="text-2xl md:text-3xl font-semibold mt-2">{featuredProject.title}</h4>
+                        <p className="mt-2 text-white/80 max-w-2xl">{featuredProject.descriptor || activeService.overview}</p>
+                        <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/80">
+                          {featuredProject.category && (
+                            <span className="px-2.5 py-1 rounded-full border border-white/20 bg-black/20">
+                              {featuredProject.category}
+                            </span>
+                          )}
+                          {featuredProject.status && (
+                            <span className="px-2.5 py-1 rounded-full border border-white/20 bg-black/20">
+                              {featuredProject.status}
+                            </span>
+                          )}
+                          {featuredProject.location && (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full border border-white/20 bg-black/20">
+                              <MapPin size={12} className="mr-1" />
+                              {featuredProject.location}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    ) : null}
+                    </div>
+                  </article>
+
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-1 gap-4">
+                    {supportProjects.map((project) => (
+                      <article
+                        key={project.id}
+                        className="rounded-2xl overflow-hidden border border-white/10 bg-[#0B0C10] hover:border-white/25 transition"
+                      >
+                        <div className="aspect-[4/3]">
+                          <ImageWithFallback
+                            src={project.imageUrl}
+                            alt={project.title}
+                            className="h-full"
+                            fallbackLabel="Imagen de proyecto no disponible"
+                          />
+                        </div>
+                        <div className="p-4">
+                          <h5 className="font-medium text-white">{project.title}</h5>
+                          <p className="mt-1 text-sm text-white/65">{project.descriptor || project.category}</p>
+                          <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/70">
+                            {project.category && (
+                              <span className="px-2 py-1 rounded-full border border-white/15">{project.category}</span>
+                            )}
+                            {project.status && (
+                              <span className="px-2 py-1 rounded-full border border-white/15">{project.status}</span>
+                            )}
+                          </div>
+                        </div>
+                      </article>
+                    ))}
                   </div>
                 </div>
-
-                {/* ✅ removed bottom red line completely */}
-              </div>
-            );
-          })}
+              ) : (
+                <div className="rounded-2xl border border-white/10 bg-[#0A0C11] p-8 text-center text-white/70">
+                  No hay proyectos para los filtros seleccionados.
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </section>

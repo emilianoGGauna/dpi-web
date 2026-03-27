@@ -1,37 +1,49 @@
 import { useState } from "react";
 
-export default function ImageWithFallback(props) {
+function ImageFrame({
+  src,
+  alt,
+  style,
+  className,
+  fallbackLabel = "Imagen no disponible",
+  showSkeleton = true,
+  ...rest
+}) {
   const [didError, setDidError] = useState(false);
-  const { src, alt, style, className, ...rest } = props;
-
-  if (didError) {
-    return (
-      <div
-        className={`inline-block bg-gray-100 text-center align-middle ${
-          className ?? ""
-        }`}
-        style={style}
-      >
-        <div className="flex items-center justify-center w-full h-full">
-          <img
-            src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODgiIGhlaWdodD0iODgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgc3Ryb2tlPSIjMDAwIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBvcGFjaXR5PSIuMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIzLjciPjxyZWN0IHg9IjE2IiB5PSIxNiIgd2lkdGg9IjU2IiBoZWlnaHQ9IjU2IiByeD0iNiIvPjxwYXRoIGQ9Im0xNiA1OCAxNi0xOCAzMiAzMiIvPjxjaXJjbGUgY3g9IjUzIiBjeT0iMzUiIHI9IjciLz48L3N2Zz4KCg=="
-            alt="Error loading image"
-            {...rest}
-            data-original-url={src}
-          />
-        </div>
-      </div>
-    );
-  }
+  const [isLoaded, setIsLoaded] = useState(false);
+  const hasSource = Boolean(src);
 
   return (
-    <img
-      src={src}
-      alt={alt}
-      className={className}
-      style={style}
-      {...rest}
-      onError={() => setDidError(true)}
-    />
+    <div className={`relative overflow-hidden ${className || ""}`} style={style}>
+      {!didError && hasSource && (
+        <img
+          src={src}
+          alt={alt}
+          {...rest}
+          className="w-full h-full object-cover"
+          onLoad={() => setIsLoaded(true)}
+          onError={() => {
+            setDidError(true);
+            setIsLoaded(true);
+          }}
+        />
+      )}
+
+      {(didError || !hasSource) && (
+        <div className="absolute inset-0 flex items-end bg-gradient-to-br from-[#101114] via-[#151723] to-[#29131a] border border-white/10">
+          <div className="p-4 w-full">
+            <div className="h-0.5 w-10 rounded-full bg-[#7e1f2a]" />
+            <p className="mt-3 text-xs uppercase tracking-[0.18em] text-white/70">DPI</p>
+            <p className="mt-1 text-sm text-white/85">{fallbackLabel}</p>
+          </div>
+        </div>
+      )}
+
+      {showSkeleton && !isLoaded && <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-[#111318] via-[#1a1d24] to-[#111318]" />}
+    </div>
   );
+}
+
+export default function ImageWithFallback(props) {
+  return <ImageFrame key={props.src || "missing-src"} {...props} />;
 }
