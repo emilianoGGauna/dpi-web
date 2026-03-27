@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { MapPin, Search, ChevronDown, Filter, X } from "lucide-react";
 import ImageWithFallback from "../ui/ImageWithFallback";
+import { getImagesApiBase } from "../../lib/imageApi";
+import { normalizeProjects } from "../../lib/projects";
 
 /* ---------------- helpers ---------------- */
-const isHttp = (s = "") => /^https?:\/\//i.test(String(s || ""));
 
 function normalizeType(type = "") {
   // para agrupar por "Uso mixto / Oficinas" => "Uso mixto"
@@ -11,11 +12,8 @@ function normalizeType(type = "") {
 }
 
 export default function ProjectsSection({ accentColor = "#C0392B" }) {
-  const IMG_API = (import.meta.env.VITE_IMAGES_API_BASE || "").replace(/\/$/, "");
-  const PROJECTS_URL = `${IMG_API}/api/home-slides`; // ✅ se queda en home-slides
-
-  const buildImageUrlFromObject = (objectName) =>
-    `${IMG_API}/api/images?object=${encodeURIComponent(objectName)}&w=1400&q=82&format=jpeg`;
+  const IMG_API = getImagesApiBase();
+  const PROJECTS_URL = `${IMG_API}/api/home-slides`;
 
   const [allProjects, setAllProjects] = useState([]);
   const [status, setStatus] = useState("loading"); // loading | ready | error
@@ -51,7 +49,9 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
           try {
             const j = await res.json();
             if (j?.error) msg = `${msg} — ${j.error}`;
-          } catch {}
+          } catch (parseErr) {
+            void parseErr;
+          }
           throw new Error(msg);
         }
 
@@ -60,27 +60,15 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
           throw new Error("home-slides.json (o project-list.json) debe ser un arreglo JSON (array).");
         }
 
-        const mapped = raw
-          .filter(Boolean)
-          .map((p, idx) => {
-            const imgObject = p.imgObject || p.img; // soporta ambos
-            const img = imgObject
-              ? isHttp(imgObject)
-                ? imgObject
-                : buildImageUrlFromObject(imgObject)
-              : "";
-
-            return {
-              id: p.id ?? idx + 1,
-              title: p.title ?? `Proyecto ${idx + 1}`,
-              type: p.type ?? "",
-              location: p.location ?? "",
-              role: p.role ?? "",
-              fx: p.fx ?? "",
-              img,
-            };
-          })
-          .filter((p) => Boolean(p.title));
+        const mapped = normalizeProjects(raw).map((p) => ({
+          id: p.id,
+          title: p.title,
+          type: p.category,
+          location: p.location,
+          role: p.descriptor,
+          img: p.imageUrl,
+          status: p.status,
+        }));
 
         if (!mapped.length) {
           throw new Error("El JSON se cargó, pero no hay proyectos válidos.");
@@ -118,6 +106,7 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
         (p.title || "").toLowerCase().includes(q) ||
         (p.type || "").toLowerCase().includes(q) ||
         (p.role || "").toLowerCase().includes(q) ||
+        (p.status || "").toLowerCase().includes(q) ||
         (p.location || "").toLowerCase().includes(q);
 
       const matchesType = !typeFilter || normalizeType(p.type) === typeFilter;
