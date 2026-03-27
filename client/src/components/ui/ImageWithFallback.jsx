@@ -1,58 +1,49 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
-export default function ImageWithFallback({
+function ImageFrame({
   src,
   alt,
-  className = "",
-  imageClassName = "",
+  style,
+  className,
   fallbackLabel = "Imagen no disponible",
-  aspectRatio,
-  fit = "cover",
-  loading = "lazy",
-  sizes,
-  quality = "high",
+  showSkeleton = true,
+  ...rest
 }) {
-  const [hasError, setHasError] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-
-  const safeAlt = alt?.trim() || "Imagen DPI";
-  const hasSource = Boolean(src && !hasError);
-  const wrapperStyle = useMemo(
-    () => (aspectRatio ? { aspectRatio } : undefined),
-    [aspectRatio]
-  );
+  const [didError, setDidError] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const hasSource = Boolean(src);
 
   return (
-    <div className={`relative overflow-hidden bg-[#0f1319] ${className}`} style={wrapperStyle}>
-      {hasSource ? (
+    <div className={`relative overflow-hidden ${className || ""}`} style={style}>
+      {!didError && hasSource && (
         <img
           src={src}
-          alt={safeAlt}
-          loading={loading}
-          sizes={sizes}
-          fetchPriority={loading === "eager" ? "high" : "auto"}
-          decoding="async"
-          onLoad={() => setLoaded(true)}
+          alt={alt}
+          {...rest}
+          className="w-full h-full object-cover"
+          onLoad={() => setIsLoaded(true)}
           onError={() => {
-            setHasError(true);
-            setLoaded(true);
+            setDidError(true);
+            setIsLoaded(true);
           }}
-          className={`h-full w-full transition duration-500 ${loaded ? "opacity-100" : "opacity-0"} ${imageClassName}`}
-          style={{ objectFit: fit }}
-          data-quality={quality}
         />
-      ) : null}
-
-      {!loaded && (
-        <div aria-hidden className="absolute inset-0 animate-pulse bg-gradient-to-r from-[#0e1116] via-[#171d26] to-[#0e1116]" />
       )}
 
-      {!hasSource && (
-        <div className="absolute inset-0 flex flex-col justify-end border border-white/10 bg-gradient-to-br from-[#0f1218] via-[#171c26] to-[#2f2615] p-4">
-          <p className="text-[10px] uppercase tracking-[0.22em] text-[#e1c27a]/80">DPI</p>
-          <p className="mt-1 text-sm text-white/85">{fallbackLabel}</p>
+      {(didError || !hasSource) && (
+        <div className="absolute inset-0 flex items-end bg-gradient-to-br from-[#101114] via-[#151723] to-[#29131a] border border-white/10">
+          <div className="p-4 w-full">
+            <div className="h-0.5 w-10 rounded-full bg-[#7e1f2a]" />
+            <p className="mt-3 text-xs uppercase tracking-[0.18em] text-white/70">DPI</p>
+            <p className="mt-1 text-sm text-white/85">{fallbackLabel}</p>
+          </div>
         </div>
       )}
+
+      {showSkeleton && !isLoaded && <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-[#111318] via-[#1a1d24] to-[#111318]" />}
     </div>
   );
+}
+
+export default function ImageWithFallback(props) {
+  return <ImageFrame key={props.src || "missing-src"} {...props} />;
 }
