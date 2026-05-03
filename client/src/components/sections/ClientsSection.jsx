@@ -63,8 +63,8 @@ function normalizeLogoObjects(raw, prefix) {
 export default function ClientsSection({
   accentColor = "#C0392B",
   folderPrefix = "LOGOS DE CLIENTES/",
-  speedSecondsDesktop = 36,
-  speedSecondsMobile = 45,
+  speedSecondsDesktop = 40,
+  speedSecondsMobile = 50,
   imageWidthMobile = 220,
   imageWidthDesktop = 260,
   imageQuality = 85,
@@ -266,14 +266,14 @@ function SkeletonLogos() {
           className={[
             idx >= 3 ? "hidden sm:flex" : "flex",
             "items-center justify-center",
-            "h-16 sm:h-20 min-w-[180px] sm:min-w-[220px]",
-            "px-5 sm:px-7 rounded-xl",
+            "h-20 min-w-[200px] sm:min-w-[240px]",
+            "px-5 sm:px-8 rounded-xl",
             "border border-gray-200/70 dark:border-white/10",
             "bg-white/60 dark:bg-white/5",
             "animate-pulse",
           ].join(" ")}
         >
-          <div className="h-8 sm:h-10 w-[130px] sm:w-[170px] rounded bg-gray-200/80 dark:bg-white/10" />
+          <div className="h-10 w-[145px] sm:w-[195px] rounded bg-gray-200/80 dark:bg-white/10" />
         </div>
       ))}
     </div>
@@ -290,8 +290,8 @@ function MarqueeGroup({ logos, buildSrc, accentColor, ariaHidden = false }) {
             key={`${ariaHidden ? "clone" : "base"}-${obj}-${idx}`}
             className="
               flex items-center justify-center
-              h-16 sm:h-20
-              min-w-[180px] sm:min-w-[230px]
+              h-20
+              min-w-[200px] sm:min-w-[240px]
               px-5 sm:px-8
               rounded-xl
               border border-gray-200/70 dark:border-white/10
@@ -310,11 +310,16 @@ function MarqueeGroup({ logos, buildSrc, accentColor, ariaHidden = false }) {
               alt={`Logo ${humanizeLogoName(obj)}`}
               loading={isPriority && !ariaHidden ? "eager" : "lazy"}
               decoding="async"
+              showSkeleton={false}
               className="
+                flex items-center justify-center
+                w-full h-full
+              "
+              imgClassName="
                 max-h-10 sm:max-h-12
-                max-w-[140px] sm:max-w-[190px]
-                w-auto h-auto object-contain
-                [&>img]:object-contain [&>img]:w-auto [&>img]:h-auto
+                max-w-[145px] sm:max-w-[195px]
+                w-auto h-auto
+                object-contain
                 grayscale opacity-85
                 hover:grayscale-0 hover:opacity-100
                 transition-all duration-300

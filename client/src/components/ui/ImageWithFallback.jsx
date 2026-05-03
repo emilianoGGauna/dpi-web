@@ -5,6 +5,7 @@ function ImageFrame({
   alt,
   style,
   className,
+  imgClassName = "w-full h-full object-cover",
   fallbackLabel = "Imagen no disponible",
   showSkeleton = true,
   ...rest
@@ -20,7 +21,7 @@ function ImageFrame({
           src={src}
           alt={alt}
           {...rest}
-          className="w-full h-full object-cover"
+          className={imgClassName}
           onLoad={() => setIsLoaded(true)}
           onError={() => {
             setDidError(true);
