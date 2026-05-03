@@ -117,7 +117,14 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
             {filteredProjects.map((p) => (
               <button key={p.id} type="button" onClick={() => { setSelectedProject(p); setActiveImageIdx(0); }} className="text-left rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10 bg-white dark:bg-[#101114] shadow-sm hover:shadow-lg transition">
                 <div className="h-56">
-                  <ImageWithFallback src={p.images?.[0]?.cardUrl || p.coverImageUrl || p.images?.[0]?.url} alt={p.title} className="w-full h-full object-cover" />
+                  <ImageWithFallback
+                    src={p.images?.[0]?.cardUrl || p.coverImageUrl || p.images?.[0]?.url}
+                    alt={p.title}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                    fetchPriority="low"
+                  />
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold text-gray-900 dark:text-white">{p.title}</h3>
@@ -138,12 +145,24 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
             </div>
             <div className="p-4 grid lg:grid-cols-4 gap-4">
               <div className="lg:col-span-3 rounded-xl overflow-hidden bg-black/5 dark:bg-black/30 min-h-[300px]">
-                <ImageWithFallback src={selectedProject.images[activeImageIdx]?.heroUrl || selectedProject.images[activeImageIdx]?.url} alt={selectedProject.title} className="w-full h-full object-contain max-h-[70vh] mx-auto" />
+                <ImageWithFallback
+                  src={selectedProject.images[activeImageIdx]?.heroUrl || selectedProject.images[activeImageIdx]?.url}
+                  alt={selectedProject.title}
+                  className="w-full h-full object-contain max-h-[70vh] mx-auto"
+                  loading="eager"
+                  decoding="async"
+                />
               </div>
               <div className="grid grid-cols-3 lg:grid-cols-1 gap-2 max-h-[70vh] overflow-y-auto">
                 {selectedProject.images.map((img, i) => (
                   <button key={img.id} onClick={() => setActiveImageIdx(i)} className={`rounded-lg overflow-hidden border ${i === activeImageIdx ? "border-red-500" : "border-gray-200 dark:border-white/10"}`}>
-                    <ImageWithFallback src={img.thumbnailUrl || img.url} alt="Vista previa" className="w-full h-20 object-cover" />
+                    <ImageWithFallback
+                      src={img.thumbnailUrl || img.url}
+                      alt="Vista previa"
+                      className="w-full h-20 object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </button>
                 ))}
               </div>

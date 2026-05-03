@@ -28,7 +28,8 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
-const HOME_ORDER_KEY = "dpi-home-project-order:v1";
+const HOME_ORDER_KEY = "dpi-home-project-order:v3";
+const HOME_MAX_PROJECTS = 5;
 
 function shuffleCopy(arr) {
   const a = [...arr];
@@ -37,6 +38,37 @@ function shuffleCopy(arr) {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+function preloadImage(src, timeoutMs = 2500) {
+  return new Promise((resolve) => {
+    if (!src) return resolve(false);
+
+    const img = new Image();
+    let done = false;
+
+    const finish = (ok) => {
+      if (done) return;
+      done = true;
+      resolve(ok);
+    };
+
+    const timer = window.setTimeout(() => finish(false), timeoutMs);
+
+    img.onload = () => {
+      window.clearTimeout(timer);
+      finish(true);
+    };
+
+    img.onerror = () => {
+      window.clearTimeout(timer);
+      finish(false);
+    };
+
+    img.decoding = "async";
+    img.fetchPriority = "high";
+    img.src = src;
+  });
 }
 
 
@@ -92,7 +124,7 @@ export default function HomeSection({
   subtitle = "Acompañamos a inmobiliarias, constructoras y propietarios desde la planeación y el diseño hasta la gestión urbana del proyecto.",
   ctaText = "Contáctanos",
   accentColor = "#C0392B",
-  maxProjects = 10,
+  maxProjects = 5,
   autoplayMs = 5000,
 }) {
   const IMG_API = (import.meta.env.VITE_IMAGES_API_BASE || "").replace(/\/$/, "");
@@ -105,6 +137,7 @@ export default function HomeSection({
   const [status, setStatus] = useState("loading");
   const [errorMsg, setErrorMsg] = useState("");
   const [isActiveImageLoaded, setIsActiveImageLoaded] = useState(false);
+  const loadedImageUrlsRef = useRef(new Set());
 
   // 🔧 Pausa SOLO por interacción real (NO por hover en todo el section)
   const [paused, setPaused] = useState(false);
@@ -124,6 +157,12 @@ export default function HomeSection({
     resumeTimerRef.current = window.setTimeout(() => setPaused(false), ms);
   };
 
+  const getProjectHeroUrl = (project) =>
+    project?.images?.[0]?.heroUrl || project?.coverImageUrl || project?.images?.[0]?.url || "";
+
+  const getProjectThumbUrl = (project) =>
+    project?.images?.[0]?.thumbnailUrl || project?.coverImageUrl || project?.images?.[0]?.url || "";
+
   /* -------------------- Load JSON -------------------- */
   useEffect(() => {
     const controller = new AbortController();
@@ -142,32 +181,39 @@ export default function HomeSection({
         const normalized = await fetchProjects(IMG_API, { signal: controller.signal });
         if (!normalized.length) throw new Error("No hay proyectos válidos (sin images).");
 
-        const max = Math.max(3, Number(maxProjects) || 10);
-        const base = normalized.slice(0, max);
+        const max = Math.min(HOME_MAX_PROJECTS, Math.max(1, Number(maxProjects) || HOME_MAX_PROJECTS));
+        const allProjects = normalized;
 
-        let selected = base;
+        let selected = [];
         try {
           const rawOrder = window.sessionStorage.getItem(HOME_ORDER_KEY);
           if (rawOrder) {
             const orderIds = JSON.parse(rawOrder);
             if (Array.isArray(orderIds) && orderIds.length) {
-              const byId = new Map(base.map((project) => [project.id, project]));
+              const byId = new Map(allProjects.map((project) => [project.id, project]));
               const ordered = orderIds.map((id) => byId.get(id)).filter(Boolean);
-              const missing = base.filter((project) => !orderIds.includes(project.id));
-              selected = [...ordered, ...missing];
+              const missing = allProjects.filter((project) => !orderIds.includes(project.id));
+              selected = [...ordered, ...missing].slice(0, max);
             }
           }
-          if (selected === base) {
-            selected = shuffleCopy(base);
+          if (!selected.length) {
+            selected = shuffleCopy(allProjects).slice(0, max);
             window.sessionStorage.setItem(HOME_ORDER_KEY, JSON.stringify(selected.map((p) => p.id)));
           }
         } catch {
-          selected = base;
+          selected = shuffleCopy(allProjects).slice(0, max);
+        }
+
+        const firstProject = selected[0];
+        const firstHeroUrl = getProjectHeroUrl(firstProject);
+        const firstLoaded = await preloadImage(firstHeroUrl, 2500);
+        if (firstLoaded && firstHeroUrl) {
+          loadedImageUrlsRef.current.add(firstHeroUrl);
         }
 
         setProjects(selected);
         setActiveIdx(0);
-        setIsActiveImageLoaded(false);
+        setIsActiveImageLoaded(firstLoaded || !firstHeroUrl);
         setStatus("ready");
       } catch (err) {
         if (err?.name === "AbortError") return;
@@ -181,17 +227,11 @@ export default function HomeSection({
     return () => controller.abort();
   }, [IMG_API, maxProjects]);
 
-  const getProjectHeroUrl = (project) =>
-    project?.images?.[0]?.heroUrl || project?.coverImageUrl || project?.images?.[0]?.url || "";
-
-  const getProjectThumbUrl = (project) =>
-    project?.images?.[0]?.thumbnailUrl || project?.coverImageUrl || project?.images?.[0]?.url || "";
-
   const activeProject = projects[activeIdx] || null;
   const activeUrl = getProjectHeroUrl(activeProject);
 
   useEffect(() => {
-    setIsActiveImageLoaded(false);
+    setIsActiveImageLoaded(loadedImageUrlsRef.current.has(activeUrl));
   }, [activeUrl]);
 
   const next = () => {
@@ -234,19 +274,19 @@ export default function HomeSection({
   useEffect(() => {
     if (status !== "ready" || !projects.length) return;
 
-    const preload = (url) => {
-      if (!url) return;
-      const img = new Image();
-      img.src = url;
-    };
-
-    preload(getProjectHeroUrl(projects[activeIdx]));
-
-    for (let offset = 1; offset <= 3 && offset < projects.length; offset += 1) {
-      preload(getProjectHeroUrl(projects[(activeIdx + offset) % projects.length]));
+    for (let offset = 1; offset <= 2 && offset < projects.length; offset += 1) {
+      const url = getProjectHeroUrl(projects[(activeIdx + offset) % projects.length]);
+      preloadImage(url, 2000).then((ok) => {
+        if (ok && url) loadedImageUrlsRef.current.add(url);
+      });
     }
 
-    projects.slice(0, 4).forEach((project) => preload(getProjectThumbUrl(project)));
+    projects.slice(0, 4).forEach((project) => {
+      const url = getProjectThumbUrl(project);
+      preloadImage(url, 2000).then((ok) => {
+        if (ok && url) loadedImageUrlsRef.current.add(url);
+      });
+    });
   }, [activeIdx, projects, status]);
 
   /* -------------------- Fade between images -------------------- */
@@ -369,7 +409,12 @@ export default function HomeSection({
                       alt={activeProject?.title || "Proyecto"}
                       className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
                       loading="eager"
-                      onLoad={() => setIsActiveImageLoaded(true)}
+                      decoding="async"
+                      fetchPriority="high"
+                      onLoad={() => {
+                        loadedImageUrlsRef.current.add(activeUrl);
+                        setIsActiveImageLoaded(true);
+                      }}
                       onError={() => setIsActiveImageLoaded(true)}
                     />
                   </>
