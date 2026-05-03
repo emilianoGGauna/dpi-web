@@ -63,8 +63,8 @@ function normalizeLogoObjects(raw, prefix) {
 export default function ClientsSection({
   accentColor = "#C0392B",
   folderPrefix = "LOGOS DE CLIENTES/",
-  speedSecondsDesktop = 28,
-  speedSecondsMobile = 36,
+  speedSecondsDesktop = 36,
+  speedSecondsMobile = 45,
   imageWidthMobile = 220,
   imageWidthDesktop = 260,
   imageQuality = 85,
@@ -234,7 +234,7 @@ export default function ClientsSection({
             ) : (
               <div className="relative overflow-hidden">
                 <div
-                  className="dpi-marquee-track flex items-center gap-4 sm:gap-6 w-max"
+                  className="dpi-marquee-track flex items-center gap-5 sm:gap-6 w-max"
                   style={{
                     ["--dpi-speed-desktop"]: `${speedSecondsDesktop}s`,
                     ["--dpi-speed-mobile"]: `${speedSecondsMobile}s`,
@@ -259,21 +259,21 @@ function humanizeLogoName(objectName = "") {
 
 function SkeletonLogos() {
   return (
-    <div className="flex items-center gap-4 sm:gap-6">
+    <div className="flex items-center gap-5 sm:gap-6">
       {Array.from({ length: 6 }).map((_, idx) => (
         <div
           key={`skeleton-${idx}`}
           className={[
             idx >= 3 ? "hidden sm:flex" : "flex",
             "items-center justify-center",
-            "h-14 sm:h-16 min-w-[128px] sm:min-w-[170px]",
-            "px-4 sm:px-6 rounded-xl",
+            "h-16 sm:h-20 min-w-[180px] sm:min-w-[220px]",
+            "px-5 sm:px-7 rounded-xl",
             "border border-gray-200/70 dark:border-white/10",
             "bg-white/60 dark:bg-white/5",
             "animate-pulse",
           ].join(" ")}
         >
-          <div className="h-6 sm:h-8 w-16 sm:w-20 rounded bg-gray-200/80 dark:bg-white/10" />
+          <div className="h-8 sm:h-10 w-[130px] sm:w-[170px] rounded bg-gray-200/80 dark:bg-white/10" />
         </div>
       ))}
     </div>
@@ -282,7 +282,7 @@ function SkeletonLogos() {
 
 function MarqueeGroup({ logos, buildSrc, accentColor, ariaHidden = false }) {
   return (
-    <div className="flex items-center gap-4 sm:gap-6" aria-hidden={ariaHidden ? "true" : undefined}>
+    <div className="flex items-center gap-5 sm:gap-6" aria-hidden={ariaHidden ? "true" : undefined}>
       {logos.map((obj, idx) => {
         const isPriority = idx < 4;
         return (
@@ -290,9 +290,9 @@ function MarqueeGroup({ logos, buildSrc, accentColor, ariaHidden = false }) {
             key={`${ariaHidden ? "clone" : "base"}-${obj}-${idx}`}
             className="
               flex items-center justify-center
-              h-14 sm:h-16
-              min-w-[128px] sm:min-w-[170px]
-              px-4 sm:px-8
+              h-16 sm:h-20
+              min-w-[180px] sm:min-w-[230px]
+              px-5 sm:px-8
               rounded-xl
               border border-gray-200/70 dark:border-white/10
               bg-white/60 dark:bg-white/5
@@ -311,7 +311,10 @@ function MarqueeGroup({ logos, buildSrc, accentColor, ariaHidden = false }) {
               loading={isPriority && !ariaHidden ? "eager" : "lazy"}
               decoding="async"
               className="
-                max-h-7 sm:max-h-10 w-auto object-contain
+                max-h-10 sm:max-h-12
+                max-w-[140px] sm:max-w-[190px]
+                w-auto h-auto object-contain
+                [&>img]:object-contain [&>img]:w-auto [&>img]:h-auto
                 grayscale opacity-85
                 hover:grayscale-0 hover:opacity-100
                 transition-all duration-300
