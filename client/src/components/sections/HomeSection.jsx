@@ -28,6 +28,8 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
+const HOME_ORDER_KEY = "dpi-home-project-order:v1";
+
 function shuffleCopy(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -102,6 +104,7 @@ export default function HomeSection({
 
   const [status, setStatus] = useState("loading");
   const [errorMsg, setErrorMsg] = useState("");
+  const [isActiveImageLoaded, setIsActiveImageLoaded] = useState(false);
 
   // 🔧 Pausa SOLO por interacción real (NO por hover en todo el section)
   const [paused, setPaused] = useState(false);
@@ -139,10 +142,32 @@ export default function HomeSection({
         const normalized = await fetchProjects(IMG_API, { signal: controller.signal });
         if (!normalized.length) throw new Error("No hay proyectos válidos (sin images).");
 
-        const selected = shuffleCopy(normalized).slice(0, Math.max(3, Number(maxProjects) || 10));
+        const max = Math.max(3, Number(maxProjects) || 10);
+        const base = normalized.slice(0, max);
+
+        let selected = base;
+        try {
+          const rawOrder = window.sessionStorage.getItem(HOME_ORDER_KEY);
+          if (rawOrder) {
+            const orderIds = JSON.parse(rawOrder);
+            if (Array.isArray(orderIds) && orderIds.length) {
+              const byId = new Map(base.map((project) => [project.id, project]));
+              const ordered = orderIds.map((id) => byId.get(id)).filter(Boolean);
+              const missing = base.filter((project) => !orderIds.includes(project.id));
+              selected = [...ordered, ...missing];
+            }
+          }
+          if (selected === base) {
+            selected = shuffleCopy(base);
+            window.sessionStorage.setItem(HOME_ORDER_KEY, JSON.stringify(selected.map((p) => p.id)));
+          }
+        } catch {
+          selected = base;
+        }
 
         setProjects(selected);
         setActiveIdx(0);
+        setIsActiveImageLoaded(false);
         setStatus("ready");
       } catch (err) {
         if (err?.name === "AbortError") return;
@@ -156,11 +181,18 @@ export default function HomeSection({
     return () => controller.abort();
   }, [IMG_API, maxProjects]);
 
-  const getProjectImageUrl = (project) =>
-    project?.coverImageUrl || project?.images?.[0]?.url || "";
+  const getProjectHeroUrl = (project) =>
+    project?.images?.[0]?.heroUrl || project?.coverImageUrl || project?.images?.[0]?.url || "";
+
+  const getProjectThumbUrl = (project) =>
+    project?.images?.[0]?.thumbnailUrl || project?.coverImageUrl || project?.images?.[0]?.url || "";
 
   const activeProject = projects[activeIdx] || null;
-  const activeUrl = getProjectImageUrl(activeProject);
+  const activeUrl = getProjectHeroUrl(activeProject);
+
+  useEffect(() => {
+    setIsActiveImageLoaded(false);
+  }, [activeUrl]);
 
   const next = () => {
     if (!projects.length) return;
@@ -198,15 +230,23 @@ export default function HomeSection({
     };
   }, [status, projects.length, paused, reducedMotion, autoplayMs]);
 
-  /* -------------------- Preload next -------------------- */
+  /* -------------------- Preload key images -------------------- */
   useEffect(() => {
-    if (status !== "ready" || projects.length < 2) return;
-    const nextIdx = (activeIdx + 1) % projects.length;
-    const nextProj = projects[nextIdx];
-    const nextUrl = getProjectImageUrl(nextProj);
-    if (!nextUrl) return;
-    const img = new Image();
-    img.src = nextUrl;
+    if (status !== "ready" || !projects.length) return;
+
+    const preload = (url) => {
+      if (!url) return;
+      const img = new Image();
+      img.src = url;
+    };
+
+    preload(getProjectHeroUrl(projects[activeIdx]));
+
+    for (let offset = 1; offset <= 3 && offset < projects.length; offset += 1) {
+      preload(getProjectHeroUrl(projects[(activeIdx + offset) % projects.length]));
+    }
+
+    projects.slice(0, 4).forEach((project) => preload(getProjectThumbUrl(project)));
   }, [activeIdx, projects, status]);
 
   /* -------------------- Fade between images -------------------- */
@@ -321,13 +361,18 @@ export default function HomeSection({
             >
               <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] bg-black/25">
                 {status === "ready" && activeUrl ? (
-                  <ImageWithFallback
-                    key={activeUrl}
-                    src={activeUrl}
-                    alt={activeProject?.title || "Proyecto"}
-                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
-                    loading="eager"
-                  />
+                  <>
+                    {!isActiveImageLoaded && <div className="absolute inset-0 animate-pulse bg-black/40" />}
+                    <ImageWithFallback
+                      key={activeUrl}
+                      src={activeUrl}
+                      alt={activeProject?.title || "Proyecto"}
+                      className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
+                      loading="eager"
+                      onLoad={() => setIsActiveImageLoaded(true)}
+                      onError={() => setIsActiveImageLoaded(true)}
+                    />
+                  </>
                 ) : (
                   <div className="absolute inset-0 bg-black/40" />
                 )}
@@ -410,7 +455,7 @@ export default function HomeSection({
 
                 <div className="grid grid-cols-4 gap-3">
                   {projects.slice(0, 4).map((p, i) => {
-                    const thumbUrl = getProjectImageUrl(p);
+                    const thumbUrl = getProjectThumbUrl(p);
                     const isActive = i === activeIdx;
 
                     return (

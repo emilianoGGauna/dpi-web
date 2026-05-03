@@ -10,6 +10,7 @@ function ImageFrame({
   showSkeleton = true,
   ...rest
 }) {
+  const { onLoad, onError, ...imgRest } = rest;
   const [didError, setDidError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const hasSource = Boolean(src);
@@ -20,12 +21,16 @@ function ImageFrame({
         <img
           src={src}
           alt={alt}
-          {...rest}
+          {...imgRest}
           className={imgClassName}
-          onLoad={() => setIsLoaded(true)}
-          onError={() => {
+          onLoad={(event) => {
+            setIsLoaded(true);
+            onLoad?.(event);
+          }}
+          onError={(event) => {
             setDidError(true);
             setIsLoaded(true);
+            onError?.(event);
           }}
         />
       )}

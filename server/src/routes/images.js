@@ -67,10 +67,14 @@ function makeCacheKey({ object, generation, w, q, format }) {
   return `cache/${format}/w${w}/q${q}/${h}`;
 }
 
+function getStaleSeconds() {
+  return Number(process.env.CACHE_STALE_WHILE_REVALIDATE_SECONDS || 2592000);
+}
+
 function setCommonHeaders(res, { ttlSeconds, format }) {
   res.setHeader("Content-Type", contentType(format));
   res.setHeader("Content-Disposition", "inline");
-  res.setHeader("Cache-Control", `public, max-age=${ttlSeconds}, stale-while-revalidate=600`);
+  res.setHeader("Cache-Control", `public, max-age=${ttlSeconds}, stale-while-revalidate=${getStaleSeconds()}`);
   res.setHeader("Vary", "Accept");
   res.setHeader("X-Content-Type-Options", "nosniff");
 }
@@ -78,7 +82,7 @@ function setCommonHeaders(res, { ttlSeconds, format }) {
 function setOriginalHeaders(res, { ttlSeconds, metadata }) {
   res.setHeader("Content-Type", metadata?.contentType || "application/octet-stream");
   res.setHeader("Content-Disposition", "inline");
-  res.setHeader("Cache-Control", `public, max-age=${ttlSeconds}, stale-while-revalidate=600`);
+  res.setHeader("Cache-Control", `public, max-age=${ttlSeconds}, stale-while-revalidate=${getStaleSeconds()}`);
   res.setHeader("Vary", "Accept");
   res.setHeader("X-Content-Type-Options", "nosniff");
 }
@@ -150,7 +154,7 @@ router.get("/", async (req, res) => {
   if (!bucketOriginal) return res.status(500).json({ error: "Missing GCS_ORIGINAL_BUCKET" });
 
   const bucketCache = await getCacheBucketName();
-  const ttlSeconds = Number(process.env.CACHE_TTL_SECONDS || 86400);
+  const ttlSeconds = Number(process.env.CACHE_TTL_SECONDS || 604800);
 
   const object = safeObjectName(parsed.data.object);
   if (!object) return res.status(400).json({ error: "Invalid object path" });
@@ -220,7 +224,7 @@ router.get("/", async (req, res) => {
       resumable: false,
       metadata: {
         contentType: contentType(format),
-        cacheControl: `public, max-age=${ttlSeconds}, stale-while-revalidate=600`,
+        cacheControl: `public, max-age=${ttlSeconds}, stale-while-revalidate=${getStaleSeconds()}`,
       },
     });
 

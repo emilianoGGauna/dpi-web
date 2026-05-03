@@ -7,6 +7,14 @@ const storage = new Storage();
 const BUCKET = process.env.GCS_ORIGINAL_BUCKET || "dpi-info";
 const PROJECTS_PREFIX = "Proyectos/";
 const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"]);
+const PROJECTS_CACHE_TTL_MS = Number(process.env.PROJECTS_CACHE_TTL_MS || 5 * 60 * 1000);
+const PROJECTS_RESPONSE_CACHE_CONTROL = "public, max-age=60, stale-while-revalidate=300";
+
+let projectsCache = {
+  timestamp: 0,
+  data: null,
+  pending: null,
+};
 
 function toSlug(value = "") {
   return String(value)
@@ -72,26 +80,55 @@ async function loadProjectsFromGcs() {
   return normalizeProjectGroups(objectNames);
 }
 
-router.get("/projects", async (req, res) => {
+function isFreshCache() {
+  return Array.isArray(projectsCache.data) && Date.now() - projectsCache.timestamp < PROJECTS_CACHE_TTL_MS;
+}
+
+async function getProjectsCached() {
+  if (isFreshCache()) {
+    return { data: projectsCache.data, state: "hit" };
+  }
+
+  if (!projectsCache.pending) {
+    projectsCache.pending = loadProjectsFromGcs()
+      .then((data) => {
+        projectsCache.data = data;
+        projectsCache.timestamp = Date.now();
+        return data;
+      })
+      .finally(() => {
+        projectsCache.pending = null;
+      });
+  }
+
   try {
-    const projects = await loadProjectsFromGcs();
-    res.setHeader("Cache-Control", "no-store");
-    res.json(projects);
+    const data = await projectsCache.pending;
+    return { data, state: projectsCache.timestamp ? "miss" : "miss" };
+  } catch (error) {
+    if (Array.isArray(projectsCache.data)) {
+      return { data: projectsCache.data, state: "stale", error };
+    }
+    throw error;
+  }
+}
+
+async function respondWithProjects(req, res, errorContext) {
+  try {
+    const { data, state, error } = await getProjectsCached();
+    if (error && state === "stale") {
+      console.warn(`${errorContext}_STALE_CACHE`, error);
+    }
+    res.setHeader("Cache-Control", PROJECTS_RESPONSE_CACHE_CONTROL);
+    res.setHeader("X-DPI-Cache", state);
+    res.json(data);
   } catch (e) {
-    console.error("PROJECTS_LOAD_ERROR", e);
+    console.error(errorContext, e);
     res.status(500).json({ error: "Cannot load projects from GCS" });
   }
-});
+}
 
-router.get("/home-slides", async (req, res) => {
-  try {
-    const projects = await loadProjectsFromGcs();
-    res.setHeader("Cache-Control", "no-store");
-    res.json(projects);
-  } catch (e) {
-    console.error("HOME_SLIDES_ERROR", e);
-    res.status(500).json({ error: "Cannot load home slides from GCS" });
-  }
-});
+router.get("/projects", async (req, res) => respondWithProjects(req, res, "PROJECTS_LOAD_ERROR"));
+
+router.get("/home-slides", async (req, res) => respondWithProjects(req, res, "HOME_SLIDES_ERROR"));
 
 export default router;
