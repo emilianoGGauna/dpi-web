@@ -272,7 +272,24 @@ export default function HomeSection({
     >
       {/* Background */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-gray-900" />
+        {status === "ready" && (currUrl || prevUrl) ? (
+          <div className="absolute inset-0">
+            {prevUrl ? <ImageWithFallback src={prevUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-100" /> : null}
+            {currUrl ? (
+              <ImageWithFallback
+                src={currUrl}
+                alt={activeProject?.title || "Proyecto"}
+                className={[
+                  "absolute inset-0 w-full h-full object-cover",
+                  reducedMotion ? "opacity-100" : entered ? "opacity-100" : "opacity-0",
+                  reducedMotion ? "" : "transition-opacity duration-700",
+                ].join(" ")}
+              />
+            ) : null}
+          </div>
+        ) : (
+          <div className="absolute inset-0 bg-gray-900" />
+        )}
         <div className="absolute inset-0 bg-black/65 dark:bg-black/75" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/20" />
       </div>
@@ -302,34 +319,17 @@ export default function HomeSection({
               style={{ touchAction: "pan-y" }}
               aria-label="Carrusel de proyectos (desliza izquierda o derecha)"
             >
-              <div className="relative w-full aspect-[16/10] sm:aspect-[16/9]">
-                {status === "ready" && (currUrl || prevUrl) ? (
-                  <>
-                    {prevUrl ? (
-                      <ImageWithFallback
-                        src={prevUrl}
-                        alt=""
-                        className="absolute inset-0 w-full h-full object-cover opacity-100"
-                      />
-                    ) : null}
+              <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] bg-black/25">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
 
-                    {currUrl ? (
-                      <ImageWithFallback
-                        src={currUrl}
-                        alt={activeProject?.title || "Proyecto"}
-                        className={[
-                          "absolute inset-0 w-full h-full object-cover",
-                          reducedMotion ? "opacity-100" : entered ? "opacity-100" : "opacity-0",
-                          reducedMotion ? "" : "transition-opacity duration-700",
-                        ].join(" ")}
-                      />
-                    ) : null}
-                  </>
-                ) : (
-                  <div className="w-full h-full bg-black/40" />
+                {status === "ready" && activeProject?.title && (
+                  <div className="absolute left-4 bottom-4 right-4">
+                    <div className="inline-flex items-center gap-2 rounded-xl px-3 py-2 bg-black/35 border border-white/10 backdrop-blur-md">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: accentColor }} />
+                      <span className="text-white font-semibold text-sm sm:text-base">{activeProject.title}</span>
+                    </div>
+                  </div>
                 )}
-
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
                 {/* Arrows */}
                 {status === "ready" && projects.length > 1 && (
