@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Filter, MapPin } from "lucide-react";
+import { Filter } from "lucide-react";
 import ImageWithFallback from "../ui/ImageWithFallback";
 import { getImagesApiBase } from "../../lib/imageApi";
 import { normalizeProjects, toSlug } from "../../lib/projects";
@@ -202,8 +202,6 @@ export default function ServicesSection({ accentColor = "#7E1F2A" }) {
     });
   }, [serviceProjects, activeTag, activeCategory, activeStatus]);
 
-  const featuredProject = filteredProjects[0] || serviceProjects[0] || null;
-  const supportProjects = filteredProjects.slice(featuredProject ? 1 : 0, 7);
 
   return (
     <section id="services" className="py-16 md:py-24 bg-[#090A0D] text-white">
@@ -311,80 +309,9 @@ export default function ServicesSection({ accentColor = "#7E1F2A" }) {
           )}
 
           {status === "ready" && (
-            <>
-              {featuredProject ? (
-                <div className="grid lg:grid-cols-[1.45fr_1fr] gap-5">
-                  <article className="rounded-2xl overflow-hidden border border-white/10 bg-[#0B0C10]">
-                    <div className="aspect-[16/9] relative">
-                      <ImageWithFallback
-                        src={featuredProject.imageUrl}
-                        alt={featuredProject.title}
-                        fallbackLabel="Imagen principal no disponible"
-                        className="absolute inset-0"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-5 md:p-7">
-                        <p className="text-xs uppercase tracking-[0.16em] text-white/60">Proyecto destacado</p>
-                        <h4 className="text-2xl md:text-3xl font-semibold mt-2">{featuredProject.title}</h4>
-                        <p className="mt-2 text-white/80 max-w-2xl">{featuredProject.descriptor || activeService.overview}</p>
-                        <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/80">
-                          {featuredProject.category && (
-                            <span className="px-2.5 py-1 rounded-full border border-white/20 bg-black/20">
-                              {featuredProject.category}
-                            </span>
-                          )}
-                          {featuredProject.status && (
-                            <span className="px-2.5 py-1 rounded-full border border-white/20 bg-black/20">
-                              {featuredProject.status}
-                            </span>
-                          )}
-                          {featuredProject.location && (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full border border-white/20 bg-black/20">
-                              <MapPin size={12} className="mr-1" />
-                              {featuredProject.location}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </article>
-
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-1 gap-4">
-                    {supportProjects.map((project) => (
-                      <article
-                        key={project.id}
-                        className="rounded-2xl overflow-hidden border border-white/10 bg-[#0B0C10] hover:border-white/25 transition"
-                      >
-                        <div className="aspect-[4/3]">
-                          <ImageWithFallback
-                            src={project.imageUrl}
-                            alt={project.title}
-                            className="h-full"
-                            fallbackLabel="Imagen de proyecto no disponible"
-                          />
-                        </div>
-                        <div className="p-4">
-                          <h5 className="font-medium text-white">{project.title}</h5>
-                          <p className="mt-1 text-sm text-white/65">{project.descriptor || project.category}</p>
-                          <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/70">
-                            {project.category && (
-                              <span className="px-2 py-1 rounded-full border border-white/15">{project.category}</span>
-                            )}
-                            {project.status && (
-                              <span className="px-2 py-1 rounded-full border border-white/15">{project.status}</span>
-                            )}
-                          </div>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-white/10 bg-[#0A0C11] p-8 text-center text-white/70">
-                  No hay proyectos para los filtros seleccionados.
-                </div>
-              )}
-            </>
+            <div className="rounded-2xl border border-white/10 bg-[#0A0C11] p-8 text-center text-white/80">
+              Catálogo de servicios activo. Revisa la sección <span className="font-semibold">Proyectos</span> para explorar el portafolio completo con galería.
+            </div>
           )}
         </div>
       </div>

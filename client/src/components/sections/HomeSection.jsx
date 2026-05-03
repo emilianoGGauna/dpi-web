@@ -97,7 +97,7 @@ export default function HomeSection({
   autoplayMs = 5000,
 }) {
   const IMG_API = (import.meta.env.VITE_IMAGES_API_BASE || "").replace(/\/$/, "");
-  const PROJECT_LIST_URL = `${IMG_API}/api/home-slides`; // tu project-list.json
+  const PROJECT_LIST_URL = `${IMG_API}/api/projects`;
 
   const reducedMotion = usePrefersReducedMotion();
 
@@ -148,7 +148,7 @@ export default function HomeSection({
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data = await res.json();
-        if (!Array.isArray(data)) throw new Error("project-list.json debe ser un arreglo JSON.");
+        if (!Array.isArray(data)) throw new Error("Se esperaba un arreglo de proyectos.");
 
         const cleaned = data
           .filter(Boolean)
@@ -179,7 +179,7 @@ export default function HomeSection({
         if (err?.name === "AbortError") return;
         setProjects([]);
         setStatus("error");
-        setErrorMsg(`No se pudo cargar project-list.json. (${err?.message || "error"})`);
+        setErrorMsg(`No se pudo cargar proyectos. (${err?.message || "error"})`);
       }
     };
 
@@ -301,36 +301,7 @@ export default function HomeSection({
     >
       {/* Background */}
       <div className="absolute inset-0 z-0">
-        {status === "ready" && (currUrl || prevUrl) ? (
-          <div className="absolute inset-0">
-            {/* prev layer */}
-            {prevUrl ? (
-              <ImageWithFallback
-                src={prevUrl}
-                alt=""
-                className="absolute inset-0 w-full h-full object-cover opacity-100"
-              />
-            ) : null}
-
-            {/* current layer fade-in */}
-            {currUrl ? (
-              <ImageWithFallback
-                src={currUrl}
-                alt={activeProject?.title || "Proyecto"}
-                className={[
-                  "absolute inset-0 w-full h-full object-cover",
-                  reducedMotion ? "opacity-100" : entered ? "opacity-100" : "opacity-0",
-                  reducedMotion ? "" : "transition-opacity duration-700",
-                  reducedMotion ? "" : "transition-transform duration-[5000ms] ease-out",
-                  reducedMotion ? "scale-100" : "scale-[1.08]",
-                ].join(" ")}
-              />
-            ) : null}
-          </div>
-        ) : (
-          <div className="absolute inset-0 bg-gray-900" />
-        )}
-
+        <div className="absolute inset-0 bg-gray-900" />
         <div className="absolute inset-0 bg-black/65 dark:bg-black/75" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/20" />
       </div>
