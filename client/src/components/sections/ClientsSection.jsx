@@ -18,8 +18,7 @@ export default function ClientsSection({
   // image params
   imageWidth = 260,
   imageQuality = 85,
-  imageFormat = "webp",
-}) {
+  }) {
   const IMG_API = getImagesApiBase();
   const [logoObjects, setLogoObjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -98,7 +97,7 @@ export default function ClientsSection({
   }, [logoObjects]);
 
   const buildSrc = (objectName) =>
-    buildImageUrl(objectName, { width: imageWidth, quality: imageQuality, format: imageFormat });
+    buildImageUrl(objectName, { width: imageWidth, quality: imageQuality });
 
   return (
     <section

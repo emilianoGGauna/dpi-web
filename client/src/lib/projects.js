@@ -1,4 +1,4 @@
-import { buildImageUrl } from "./imageApi";
+import { buildImageUrl, getImagesApiBase } from "./imageApi";
 
 function toSlug(value = "") {
   return String(value)
@@ -9,6 +9,21 @@ function toSlug(value = "") {
     .replace(/^-|-$/g, "") || "item";
 }
 
+
+function resolveImageUrl(imageUrl, object, options = {}) {
+  const raw = String(imageUrl || "").trim();
+  const apiBase = getImagesApiBase();
+
+  if (/^https?:\/\//i.test(raw)) return raw;
+
+  if (raw.startsWith("/api/images")) {
+    return apiBase ? `${apiBase}${raw}` : raw;
+  }
+
+  if (object) return buildImageUrl(object, options);
+  return "";
+}
+
 function normalizeImage(image, idx) {
   const object = String(image?.object || "").trim();
   if (!object) return null;
@@ -16,7 +31,7 @@ function normalizeImage(image, idx) {
   return {
     id: image?.id || toSlug(object) || `image-${idx + 1}`,
     object,
-    url: image?.url || buildImageUrl(object, { width: 1200, format: "webp" }),
+    url: resolveImageUrl(image?.url, object, { width: 1200, quality: 80 }),
   };
 }
 

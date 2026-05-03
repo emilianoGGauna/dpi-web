@@ -1,7 +1,6 @@
 const DEFAULTS = {
   width: 1400,
   quality: 82,
-  format: "webp",
 };
 
 export function getImagesApiBase() {
@@ -17,14 +16,14 @@ export function buildImageUrl(objectName, options = {}) {
   const {
     width = DEFAULTS.width,
     quality = DEFAULTS.quality,
-    format = DEFAULTS.format,
+    format,
   } = options;
 
   const url = new URL(`${apiBase}/api/images`);
   url.searchParams.set("object", object);
   url.searchParams.set("w", String(width));
   url.searchParams.set("q", String(quality));
-  url.searchParams.set("format", String(format));
+  if (format) url.searchParams.set("format", String(format));
   return url.toString();
 }
 

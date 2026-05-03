@@ -10,6 +10,8 @@ const router = Router();
 const storage = new Storage();
 
 const LOGOS_PREFIX = "LOGOS DE CLIENTES/";
+let cacheBucketUnavailable = false;
+let cacheBucketWarned = false;
 
 const schema = z.object({
   object: z.string().min(1),
@@ -122,6 +124,24 @@ async function streamOriginalToResponse({ originalFile, res, req, ttlSeconds, or
   await pipeline(rs, res);
 }
 
+
+async function getCacheBucketName() {
+  const bucketName = (process.env.GCS_CACHE_BUCKET || "").trim();
+  if (!bucketName || cacheBucketUnavailable) return null;
+
+  try {
+    await storage.bucket(bucketName).getMetadata();
+    return bucketName;
+  } catch (err) {
+    cacheBucketUnavailable = true;
+    if (!cacheBucketWarned) {
+      cacheBucketWarned = true;
+      console.warn("IMAGE_CACHE_BUCKET_DISABLED", { bucket: bucketName, error: err?.message || String(err) });
+    }
+    return null;
+  }
+}
+
 router.get("/", async (req, res) => {
   const parsed = schema.safeParse(req.query);
   if (!parsed.success) return res.status(400).json({ error: "Invalid query" });
@@ -129,7 +149,7 @@ router.get("/", async (req, res) => {
   const bucketOriginal = process.env.GCS_ORIGINAL_BUCKET;
   if (!bucketOriginal) return res.status(500).json({ error: "Missing GCS_ORIGINAL_BUCKET" });
 
-  const bucketCache = (process.env.GCS_CACHE_BUCKET || "").trim() || null;
+  const bucketCache = await getCacheBucketName();
   const ttlSeconds = Number(process.env.CACHE_TTL_SECONDS || 86400);
 
   const object = safeObjectName(parsed.data.object);
@@ -161,7 +181,9 @@ router.get("/", async (req, res) => {
         setCommonHeaders(res, { ttlSeconds, format });
         return await pipeline(cacheFile.createReadStream(), res);
       } catch (cacheReadErr) {
-        console.warn("IMAGE_CACHE_READ_MISS_OR_ERROR", { object, cacheKey, error: cacheReadErr?.message || String(cacheReadErr) });
+        if (!String(cacheReadErr?.message || "").includes("No such object")) {
+          console.debug("IMAGE_CACHE_READ_MISS_OR_ERROR", { object, cacheKey, error: cacheReadErr?.message || String(cacheReadErr) });
+        }
       }
     }
 

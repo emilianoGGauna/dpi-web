@@ -431,62 +431,6 @@ export default function HomeSection({
               )}
             </div>
 
-            {/* Thumbnails SOLO en desktop */}
-            {status === "ready" && projects.length > 0 && (
-              <div className="mt-5 hidden lg:block">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-white/85 font-semibold">Proyectos</div>
-                  <div className="text-white/60 text-xs sm:text-sm">Click para cambiar</div>
-                </div>
-
-                <div
-                  className="
-                    flex gap-3 overflow-x-auto pb-2
-                    snap-x snap-mandatory
-                    [-ms-overflow-style:none] [scrollbar-width:none]
-                  "
-                  style={{ WebkitOverflowScrolling: "touch" }}
-                >
-                  <style>{`
-                    #home .no-scrollbar::-webkit-scrollbar { display: none; }
-                  `}</style>
-
-                  <div className="no-scrollbar flex gap-3 overflow-x-auto snap-x snap-mandatory w-full">
-                    {projects.map((p, i) => {
-                      const isActive = i === activeIdx;
-                      const cover = coverByProjectId[p.id];
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => {
-                            setActiveIdx(i);
-                            pauseFor(Math.max(1500, autoplayMs + 600));
-                          }}
-                          aria-pressed={isActive}
-                          className={[
-                            "snap-start flex-none",
-                            "w-[30%] xl:w-[24%]",
-                            "rounded-2xl overflow-hidden",
-                            "border transition shadow-lg",
-                            isActive ? "border-white/30 ring-2 ring-white/20" : "border-white/10 hover:border-white/20",
-                            "bg-white/5 backdrop-blur-md",
-                          ].join(" ")}
-                        >
-                          <div className="relative w-full aspect-[4/3]">
-                            <ImageWithFallback src={cover?.url} alt={p.title} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
-                            <div className="absolute bottom-0 left-0 right-0 p-3">
-                              <div className="text-left text-white font-semibold text-sm leading-snug">{p.title}</div>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Text */}

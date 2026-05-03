@@ -50,7 +50,7 @@ function normalizeProjectGroups(objects = []) {
     groups.get(folderPath).images.push({
       id: toSlug(objectPath),
       object: objectPath,
-      url: `/api/images?object=${encodeURIComponent(objectPath)}&w=1200&q=80&format=webp`,
+      url: `/api/images?object=${encodeURIComponent(objectPath)}&w=1200&q=80`,
     });
   }
 
