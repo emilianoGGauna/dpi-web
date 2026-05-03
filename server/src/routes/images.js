@@ -9,6 +9,8 @@ import { pipeline } from "node:stream/promises";
 const router = Router();
 const storage = new Storage();
 
+const LOGOS_PREFIX = "LOGOS DE CLIENTES/";
+
 const schema = z.object({
   object: z.string().min(1),
   w: z.coerce.number().int().min(50).max(2400).default(1200),
@@ -25,7 +27,6 @@ function safeObjectName(object) {
   const cleaned = object.trim();
   if (!cleaned || cleaned.length > 500) return null;
 
-  // evita caracteres de control raros
   for (const ch of cleaned) {
     if (ch.charCodeAt(0) < 32) return null;
   }
@@ -34,7 +35,6 @@ function safeObjectName(object) {
 
 function pickFormat(req, requestedFormat) {
   if (requestedFormat) return requestedFormat;
-
   const accept = (req.get("accept") || "").toLowerCase();
   if (accept.includes("image/avif")) return "avif";
   if (accept.includes("image/webp")) return "webp";
@@ -49,12 +49,10 @@ function contentType(format) {
 }
 
 function buildTransformer({ w, q, format }) {
-  // seguridad contra “image bombs”
   const base = sharp({ limitInputPixels: 80_000_000 }).resize({
     width: w,
     withoutEnlargement: true,
   });
-
   if (format === "avif") return base.avif({ quality: q, effort: 4 });
   if (format === "webp") return base.webp({ quality: q, effort: 4 });
   if (format === "png") return base.png({ compressionLevel: 9, adaptiveFiltering: true });
@@ -62,7 +60,6 @@ function buildTransformer({ w, q, format }) {
 }
 
 function makeCacheKey({ object, generation, w, q, format }) {
-  // clave estable + invalida si cambia el original (generation)
   const raw = JSON.stringify({ object, generation, w, q, format });
   const h = crypto.createHash("sha256").update(raw).digest("hex").slice(0, 32);
   return `cache/${format}/w${w}/q${q}/${h}`;
@@ -73,7 +70,14 @@ function setCommonHeaders(res, { ttlSeconds, format }) {
   res.setHeader("Content-Disposition", "inline");
   res.setHeader("Cache-Control", `public, max-age=${ttlSeconds}, stale-while-revalidate=600`);
   res.setHeader("Vary", "Accept");
-  // opcional (no estorba en <img>)
+  res.setHeader("X-Content-Type-Options", "nosniff");
+}
+
+function setOriginalHeaders(res, { ttlSeconds, metadata }) {
+  res.setHeader("Content-Type", metadata?.contentType || "application/octet-stream");
+  res.setHeader("Content-Disposition", "inline");
+  res.setHeader("Cache-Control", `public, max-age=${ttlSeconds}, stale-while-revalidate=600`);
+  res.setHeader("Vary", "Accept");
   res.setHeader("X-Content-Type-Options", "nosniff");
 }
 
@@ -96,6 +100,28 @@ function handleConditionalGet(req, res, { etag, lastModified }) {
   return false;
 }
 
+function classifyAndRespondError(res, e, ctx = "IMAGE_ROUTE_ERROR") {
+  const msg = String(e?.message || "");
+  if (msg.includes("No such object") || msg.includes("404")) {
+    return res.status(404).json({ error: "Image not found" });
+  }
+  if (msg.includes("403") || msg.includes("AccessDenied") || msg.includes("Forbidden")) {
+    return res.status(403).json({ error: "Access denied to bucket/object" });
+  }
+  console.error(ctx, e?.stack || e);
+  return res.status(500).json({ error: "Image processing failed" });
+}
+
+async function streamOriginalToResponse({ originalFile, res, req, ttlSeconds, origMeta, object }) {
+  setOriginalHeaders(res, { ttlSeconds, metadata: origMeta });
+  const weakEtag = `W/"${crypto.createHash("sha1").update(`${object}:${origMeta?.generation || "0"}:orig`).digest("hex").slice(0, 16)}"`;
+  if (handleConditionalGet(req, res, { etag: weakEtag, lastModified: origMeta?.updated })) return;
+
+  const rs = originalFile.createReadStream();
+  rs.on("error", (err) => console.error("IMAGE_READSTREAM_ORIGINAL_ERROR", err?.stack || err));
+  await pipeline(rs, res);
+}
+
 router.get("/", async (req, res) => {
   const parsed = schema.safeParse(req.query);
   if (!parsed.success) return res.status(400).json({ error: "Invalid query" });
@@ -112,121 +138,97 @@ router.get("/", async (req, res) => {
   const w = parsed.data.w;
   const q = parsed.data.q;
   const format = pickFormat(req, parsed.data.format);
-
   const originalFile = storage.bucket(bucketOriginal).file(object);
 
-  // abort control
-  let aborted = false;
-  req.on("aborted", () => (aborted = true));
-  res.on("close", () => {
-    if (!res.writableEnded) aborted = true;
-  });
-
   try {
-    // ⚠️ Para cache correcto necesitamos generation del original
-    const [origMeta] = await originalFile.getMetadata();
-    const generation = origMeta.generation || "0";
+    let origMeta;
+    try {
+      [origMeta] = await originalFile.getMetadata();
+    } catch (metaErr) {
+      console.error("IMAGE_GET_METADATA_ERROR", { object, error: metaErr?.stack || metaErr });
+      return classifyAndRespondError(res, metaErr, "IMAGE_GET_METADATA_ERROR");
+    }
 
-    // Si hay cache bucket -> intenta servir cache primero
+    const generation = origMeta?.generation || "0";
+
     if (bucketCache) {
       const cacheKey = makeCacheKey({ object, generation, w, q, format });
       const cacheFile = storage.bucket(bucketCache).file(cacheKey);
-
       try {
-        const [cacheMeta] = await cacheFile.getMetadata(); // si no existe -> throw 404
+        const [cacheMeta] = await cacheFile.getMetadata();
         const etag = cacheMeta.md5Hash ? `"${cacheMeta.md5Hash}"` : `"${cacheKey}"`;
-        const lastModified = cacheMeta.updated;
-
+        if (handleConditionalGet(req, res, { etag, lastModified: cacheMeta.updated })) return;
         setCommonHeaders(res, { ttlSeconds, format });
-
-        if (handleConditionalGet(req, res, { etag, lastModified })) return;
-
         return await pipeline(cacheFile.createReadStream(), res);
-      } catch (e) {
-        // cache miss: continúa al procesamiento
+      } catch (cacheReadErr) {
+        console.warn("IMAGE_CACHE_READ_MISS_OR_ERROR", { object, cacheKey, error: cacheReadErr?.message || String(cacheReadErr) });
       }
     }
 
-    // Cache miss o no hay cache bucket: procesar desde original
-    setCommonHeaders(res, { ttlSeconds, format });
+    const isLogo = object.startsWith(LOGOS_PREFIX);
+    if (isLogo) {
+      return await streamOriginalToResponse({ originalFile, res, req, ttlSeconds, origMeta, object });
+    }
 
-    // ETag “débil” útil incluso antes de subir cache (reduce refetches)
-    // incluye generation, así que se invalida si cambias la imagen.
-    const weakEtag = `W/"${crypto
-      .createHash("sha1")
-      .update(`${object}:${origMeta.generation}:${w}:${q}:${format}`)
-      .digest("hex")
-      .slice(0, 16)}"`;
+    setCommonHeaders(res, { ttlSeconds, format });
+    const weakEtag = `W/"${crypto.createHash("sha1").update(`${object}:${generation}:${w}:${q}:${format}`).digest("hex").slice(0, 16)}"`;
     if (handleConditionalGet(req, res, { etag: weakEtag, lastModified: origMeta.updated })) return;
 
     const readStream = originalFile.createReadStream();
     const transformer = buildTransformer({ w, q, format });
 
-    // si NO hay cache bucket -> directo
+    readStream.on("error", (err) => console.error("IMAGE_READSTREAM_ERROR", { object, error: err?.stack || err }));
+    transformer.on("error", (err) => console.error("IMAGE_SHARP_TRANSFORM_ERROR", { object, format, w, q, error: err?.stack || err }));
+
     if (!bucketCache) {
-      // corta si el cliente se va
-      readStream.on("error", () => {});
-      transformer.on("error", () => {});
-      return await pipeline(readStream, transformer, res);
+      try {
+        return await pipeline(readStream, transformer, res);
+      } catch (transformErr) {
+        console.warn("IMAGE_TRANSFORM_FALLBACK_TO_ORIGINAL", { object, error: transformErr?.message || String(transformErr) });
+        if (!res.headersSent) {
+          return await streamOriginalToResponse({ originalFile, res, req, ttlSeconds, origMeta, object });
+        }
+        throw transformErr;
+      }
     }
 
-    // si HAY cache bucket -> 1 solo transform, pipe a res + cache
-    const cacheKey = makeCacheKey({ object, generation: origMeta.generation || "0", w, q, format });
+    const cacheKey = makeCacheKey({ object, generation, w, q, format });
     const cacheFile = storage.bucket(bucketCache).file(cacheKey);
     const writeStream = cacheFile.createWriteStream({
       resumable: false,
       metadata: {
         contentType: contentType(format),
         cacheControl: `public, max-age=${ttlSeconds}, stale-while-revalidate=600`,
-        metadata: {
-          object,
-          generation: String(origMeta.generation || ""),
-          w: String(w),
-          q: String(q),
-          format,
-        },
       },
     });
 
-    // pipe doble desde el MISMO transformer (ok)
+    writeStream.on("error", (err) => {
+      console.warn("IMAGE_CACHE_WRITE_ERROR", { object, cacheKey, error: err?.stack || err });
+    });
+
     transformer.pipe(res);
     transformer.pipe(writeStream);
 
-    // si el cliente aborta, mata todo
-    const kill = () => {
-      try { readStream.destroy(); } catch {}
-      try { transformer.destroy(); } catch {}
-      try { writeStream.destroy(); } catch {}
-    };
-
-    const abortInterval = setInterval(() => {
-      if (aborted) {
-        clearInterval(abortInterval);
-        kill();
+    try {
+      await pipeline(readStream, transformer);
+    } catch (transformErr) {
+      console.warn("IMAGE_TRANSFORM_WITH_CACHE_FAILED", { object, error: transformErr?.message || String(transformErr) });
+      if (!res.headersSent) {
+        return await streamOriginalToResponse({ originalFile, res, req, ttlSeconds, origMeta, object });
       }
-    }, 250).unref();
+      throw transformErr;
+    }
 
-    await pipeline(readStream, transformer);
-
-    // espera a que cache termine de escribir (si no abortaron)
-    await new Promise((resolve, reject) => {
+    await new Promise((resolve) => {
       writeStream.on("finish", resolve);
-      writeStream.on("error", reject);
+      writeStream.on("close", resolve);
+      writeStream.on("error", resolve);
       res.on("close", resolve);
-      res.on("error", reject);
+      res.on("error", resolve);
     });
-
     return;
   } catch (e) {
-    const msg = String(e?.message || "");
-    if (msg.includes("No such object") || msg.includes("404")) {
-      return res.status(404).json({ error: "Image not found" });
-    }
-    if (msg.includes("403") || msg.includes("AccessDenied") || msg.includes("Forbidden")) {
-      return res.status(403).json({ error: "Access denied to bucket/object" });
-    }
-    console.error("IMAGE_ROUTE_ERROR", e);
-    return res.status(500).json({ error: "Image processing failed" });
+    return classifyAndRespondError(res, e);
   }
 });
 
