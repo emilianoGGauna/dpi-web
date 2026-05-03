@@ -18,6 +18,7 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -41,6 +42,19 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
     const onEsc = (e) => e.key === "Escape" && setSelectedProject(null);
     window.addEventListener("keydown", onEsc);
     return () => window.removeEventListener("keydown", onEsc);
+  }, []);
+
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const updateTheme = () => setIsDarkMode(root.classList.contains("dark"));
+
+    updateTheme();
+
+    const observer = new MutationObserver(updateTheme);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+
+    return () => observer.disconnect();
   }, []);
 
   const categories = useMemo(
@@ -71,9 +85,28 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar por proyecto, categoría o carpeta" className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5" />
             </div>
-            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5">
-              <option value="">Todas las categorías</option>
-              {categories.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white text-gray-900 dark:bg-[#101114] dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/40"
+            >
+              <option
+                value=""
+                className="bg-white text-gray-900 dark:bg-[#101114] dark:text-white"
+                style={{ backgroundColor: isDarkMode ? "#101114" : "#ffffff", color: isDarkMode ? "#ffffff" : "#111827" }}
+              >
+                Todas las categorías
+              </option>
+              {categories.map((cat) => (
+                <option
+                  key={cat}
+                  value={cat}
+                  className="bg-white text-gray-900 dark:bg-[#101114] dark:text-white"
+                  style={{ backgroundColor: isDarkMode ? "#101114" : "#ffffff", color: isDarkMode ? "#ffffff" : "#111827" }}
+                >
+                  {cat}
+                </option>
+              ))}
             </select>
           </div>
         </div>
