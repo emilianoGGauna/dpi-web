@@ -320,29 +320,14 @@ export default function HomeSection({
               aria-label="Carrusel de proyectos (desliza izquierda o derecha)"
             >
               <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] bg-black/25">
-                {status === "ready" && (currUrl || prevUrl) ? (
-                  <>
-                    {prevUrl ? (
-                      <ImageWithFallback
-                        src={prevUrl}
-                        alt=""
-                        className="absolute inset-0 w-full h-full object-cover opacity-100"
-                      />
-                    ) : null}
-
-                    {currUrl ? (
-                      <ImageWithFallback
-                        src={currUrl}
-                        alt={activeProject?.title || "Proyecto"}
-                        className={[
-                          "absolute inset-0 w-full h-full object-cover",
-                          reducedMotion ? "opacity-100" : entered ? "opacity-100" : "opacity-0",
-                          reducedMotion ? "" : "transition-opacity duration-700",
-                        ].join(" ")}
-                        loading="eager"
-                      />
-                    ) : null}
-                  </>
+                {status === "ready" && activeUrl ? (
+                  <ImageWithFallback
+                    key={activeUrl}
+                    src={activeUrl}
+                    alt={activeProject?.title || "Proyecto"}
+                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
+                    loading="eager"
+                  />
                 ) : (
                   <div className="absolute inset-0 bg-black/40" />
                 )}
@@ -423,7 +408,7 @@ export default function HomeSection({
                   <div className="text-white/60 text-xs sm:text-sm">Click para cambiar</div>
                 </div>
 
-                <div className="flex gap-3 overflow-x-auto pb-2">
+                <div className="grid grid-cols-4 gap-3">
                   {projects.slice(0, 4).map((p, i) => {
                     const thumbUrl = getProjectImageUrl(p);
                     const isActive = i === activeIdx;
@@ -438,7 +423,6 @@ export default function HomeSection({
                         }}
                         aria-pressed={isActive}
                         className={[
-                          "snap-start flex-none w-[30%] xl:w-[24%]",
                           "rounded-2xl overflow-hidden border transition shadow-lg",
                           isActive ? "border-white/30 ring-2 ring-white/20" : "border-white/10 hover:border-white/20",
                           "bg-white/5 backdrop-blur-md",
