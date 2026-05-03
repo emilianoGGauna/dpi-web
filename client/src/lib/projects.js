@@ -1,4 +1,4 @@
-import { buildImageUrl, extractObjectFromImageUrl } from "./imageApi";
+import { buildImageUrl } from "./imageApi";
 
 function toSlug(value = "") {
   return String(value)
@@ -6,74 +6,55 @@ function toSlug(value = "") {
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replace(/^-|-$/g, "") || "item";
 }
 
-function normalizeArray(value) {
-  if (Array.isArray(value)) return value.filter(Boolean).map((v) => String(v).trim()).filter(Boolean);
-  if (!value) return [];
-  return String(value)
-    .split(",")
-    .map((v) => v.trim())
-    .filter(Boolean);
-}
+function normalizeImage(image, idx) {
+  const object = String(image?.object || "").trim();
+  if (!object) return null;
 
-function pickImageObject(project) {
-  const direct =
-    project.imageObject ||
-    project.imgObject ||
-    project.imageKey ||
-    project.gcsObject ||
-    project.image?.object ||
-    "";
-
-  if (direct) return String(direct).trim();
-
-  const imgValue = String(project.img || project.image || "").trim();
-  if (imgValue && !/^https?:\/\//i.test(imgValue)) return imgValue;
-
-  const fromUrl = extractObjectFromImageUrl(imgValue);
-  if (fromUrl) return fromUrl;
-
-  if (Array.isArray(project.images)) {
-    for (const item of project.images) {
-      const candidate =
-        item?.imageObject ||
-        item?.imgObject ||
-        item?.imageKey ||
-        item?.gcsObject ||
-        item?.object ||
-        extractObjectFromImageUrl(item?.url || "");
-
-      if (candidate) return String(candidate).trim();
-    }
-  }
-
-  return "";
+  return {
+    id: image?.id || toSlug(object) || `image-${idx + 1}`,
+    object,
+    url: image?.url || buildImageUrl(object, { width: 1200, format: "webp" }),
+  };
 }
 
 export function normalizeProject(project, index) {
-  const imageObject = pickImageObject(project);
-  const tags = normalizeArray(project.tags || project.tag || project.keywords);
-  const serviceHints = normalizeArray(project.serviceIds || project.services || project.service);
-  const category = project.category || project.type || "Caso";
+  const images = Array.isArray(project?.images)
+    ? project.images.map(normalizeImage).filter((img) => img?.url)
+    : [];
+
+  const folderPath = String(project?.folderPath || "").trim();
+  const title = String(project?.title || `Proyecto ${index + 1}`).trim();
+  const category = String(project?.category || title).trim();
 
   return {
-    id: project.id ?? `project-${index + 1}`,
-    title: project.title || project.name || `Proyecto ${index + 1}`,
+    id: project?.id || toSlug(folderPath || title) || `project-${index + 1}`,
+    title,
     category,
-    status: project.status || project.caseType || project.stage || "",
-    descriptor: project.descriptor || project.summary || project.role || "",
-    location: project.location || "",
-    tags,
-    serviceHints: serviceHints.map(toSlug),
-    imageObject,
-    imageUrl: imageObject ? buildImageUrl(imageObject, { width: 1600 }) : "",
+    folderPath,
+    images,
+    coverImageUrl: images[0]?.url || "",
   };
 }
 
 export function normalizeProjects(rawProjects = []) {
-  return rawProjects.filter(Boolean).map(normalizeProject);
+  return rawProjects
+    .filter(Boolean)
+    .map(normalizeProject)
+    .filter((project) => project.images.length);
+}
+
+export async function fetchProjects(apiBase, { signal } = {}) {
+  const base = String(apiBase || "").replace(/\/$/, "");
+  if (!base) throw new Error("Falta VITE_IMAGES_API_BASE para cargar proyectos.");
+
+  const res = await fetch(`${base}/api/projects`, { signal, cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const raw = await res.json();
+  if (!Array.isArray(raw)) throw new Error("Se esperaba un arreglo de proyectos.");
+  return normalizeProjects(raw);
 }
 
 export { toSlug };

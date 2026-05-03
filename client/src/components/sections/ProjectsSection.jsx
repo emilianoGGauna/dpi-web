@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
 import ImageWithFallback from "../ui/ImageWithFallback";
 import { getImagesApiBase } from "../../lib/imageApi";
+import { fetchProjects } from "../../lib/projects";
 
 function shouldShowCategory(project) {
   return project?.category && project?.category !== project?.title;
@@ -9,7 +10,6 @@ function shouldShowCategory(project) {
 
 export default function ProjectsSection({ accentColor = "#C0392B" }) {
   const IMG_API = getImagesApiBase();
-  const PROJECTS_URL = `${IMG_API}/api/projects`;
 
   const [projects, setProjects] = useState([]);
   const [status, setStatus] = useState("loading");
@@ -24,11 +24,8 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
     async function load() {
       setStatus("loading");
       try {
-        const res = await fetch(PROJECTS_URL, { signal: controller.signal, cache: "no-store" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        if (!Array.isArray(data)) throw new Error("Se esperaba un arreglo de proyectos.");
-        setProjects(data.filter((p) => p?.images?.length));
+        const data = await fetchProjects(IMG_API, { signal: controller.signal });
+        setProjects(data);
         setStatus("ready");
       } catch (e) {
         if (e?.name === "AbortError") return;
@@ -38,7 +35,7 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
     }
     load();
     return () => controller.abort();
-  }, [PROJECTS_URL]);
+  }, [IMG_API]);
 
   useEffect(() => {
     const onEsc = (e) => e.key === "Escape" && setSelectedProject(null);
@@ -54,7 +51,7 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
   const filteredProjects = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     return projects.filter((p) => {
-      const matchesSearch = !q || p.title.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
+      const matchesSearch = !q || p.title.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || (p.folderPath || "").toLowerCase().includes(q);
       const matchesCategory = !categoryFilter || p.category === categoryFilter;
       return matchesSearch && matchesCategory;
     });
@@ -72,7 +69,7 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
           <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar por proyecto o categoría" className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5" />
+              <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar por proyecto, categoría o carpeta" className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5" />
             </div>
             <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5">
               <option value="">Todas las categorías</option>
@@ -100,8 +97,8 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
       </div>
 
       {selectedProject && (
-        <div className="fixed inset-0 z-50 bg-black/80 p-4 md:p-8" role="dialog" aria-modal="true" aria-label={`Galería de ${selectedProject.title}`}>
-          <div className="max-w-6xl mx-auto bg-white dark:bg-[#101114] rounded-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-black/80 p-4 md:p-8" role="dialog" aria-modal="true" aria-label={`Galería de ${selectedProject.title}`} onClick={() => setSelectedProject(null)}>
+          <div className="max-w-6xl mx-auto bg-white dark:bg-[#101114] rounded-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-white/10">
               <div><h3 className="font-semibold text-lg dark:text-white">{selectedProject.title}</h3>{shouldShowCategory(selectedProject) && <p className="text-sm text-gray-500 dark:text-white/65">{selectedProject.category}</p>}</div>
               <button onClick={() => setSelectedProject(null)} aria-label="Cerrar galería" className="p-2 rounded-lg border border-gray-200 dark:border-white/10"><X size={18} /></button>

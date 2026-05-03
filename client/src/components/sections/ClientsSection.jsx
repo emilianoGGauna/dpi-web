@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import ImageWithFallback from "../ui/ImageWithFallback";
+import { buildImageUrl, getImagesApiBase } from "../../lib/imageApi";
 
-const isImageFile = (name = "") => /\.(png|jpe?g|webp|svg)$/i.test(name);
+const isImageFile = (name = "") => /\.(png|jpe?g|webp)$/i.test(name);
 
 function normalizePrefix(prefix) {
   if (!prefix) return "";
@@ -19,9 +20,10 @@ export default function ClientsSection({
   imageQuality = 85,
   imageFormat = "webp",
 }) {
-  const IMG_API = (import.meta.env.VITE_IMAGES_API_BASE || "").replace(/\/$/, "");
+  const IMG_API = getImagesApiBase();
   const [logoObjects, setLogoObjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const prefix = useMemo(() => normalizePrefix(folderPrefix), [folderPrefix]);
 
@@ -31,6 +33,13 @@ export default function ClientsSection({
 
     async function load() {
       setLoading(true);
+      setErrorMsg("");
+      if (!IMG_API) {
+        setLogoObjects([]);
+        setLoading(false);
+        setErrorMsg("Configura VITE_IMAGES_API_BASE para cargar logos de clientes.");
+        return;
+      }
       try {
         /**
          * ✅ You need (or likely already have) an endpoint that LISTS objects in a folder/prefix.
@@ -61,7 +70,10 @@ export default function ClientsSection({
 
         if (alive) setLogoObjects(names);
       } catch (e) {
-        if (alive) setLogoObjects([]);
+        if (alive) {
+          setLogoObjects([]);
+          setErrorMsg(`No se pudieron cargar logos desde ${prefix}.`);
+        }
         // eslint-disable-next-line no-console
         console.warn("ClientsSection: could not load folder logos:", e);
       } finally {
@@ -86,7 +98,7 @@ export default function ClientsSection({
   }, [logoObjects]);
 
   const buildSrc = (objectName) =>
-    `${IMG_API}/api/images?object=${encodeURIComponent(objectName)}&w=${imageWidth}&q=${imageQuality}&format=${imageFormat}`;
+    buildImageUrl(objectName, { width: imageWidth, quality: imageQuality, format: imageFormat });
 
   return (
     <section
@@ -136,7 +148,9 @@ export default function ClientsSection({
           }}
         >
           <div className="px-4 sm:px-6 py-5">
-            {loading && !logos.length ? (
+            {errorMsg ? (
+              <div className="text-sm text-amber-700 dark:text-amber-300">{errorMsg}</div>
+            ) : loading && !logos.length ? (
               <div className="text-sm text-gray-600 dark:text-white/60">
                 Cargando clientes…
               </div>
@@ -173,6 +187,11 @@ export default function ClientsSection({
   );
 }
 
+function humanizeLogoName(objectName = "") {
+  const base = objectName.split("/").pop() || "Cliente";
+  return base.replace(/\.[^/.]+$/, "").replace(/[-_]+/g, " ").trim() || "Cliente";
+}
+
 function MarqueeGroup({ logos, buildSrc, accentColor, ariaHidden = false }) {
   return (
     <div className="flex items-center gap-6" aria-hidden={ariaHidden ? "true" : undefined}>
@@ -191,11 +210,11 @@ function MarqueeGroup({ logos, buildSrc, accentColor, ariaHidden = false }) {
           style={{
             boxShadow: `0 0 0 1px ${accentColor}14 inset`,
           }}
-          title={obj.split("/").pop()?.replace(/\.(png|jpe?g|webp|svg)$/i, "")}
+          title={humanizeLogoName(obj)}
         >
           <ImageWithFallback
             src={buildSrc(obj)}
-            alt={obj}
+            alt={`Logo ${humanizeLogoName(obj)}`}
             className="
               h-8 sm:h-10 w-auto object-contain
               grayscale opacity-80

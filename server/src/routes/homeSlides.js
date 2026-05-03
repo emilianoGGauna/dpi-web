@@ -50,7 +50,7 @@ function normalizeProjectGroups(objects = []) {
     groups.get(folderPath).images.push({
       id: toSlug(objectPath),
       object: objectPath,
-      url: `/api/images?object=${encodeURIComponent(objectPath)}&w=1200&q=80`,
+      url: `/api/images?object=${encodeURIComponent(objectPath)}&w=1200&q=80&format=webp`,
     });
   }
 
@@ -67,7 +67,7 @@ function normalizeProjectGroups(objects = []) {
 }
 
 async function loadProjectsFromGcs() {
-  const [files] = await storage.bucket(BUCKET).getFiles({ prefix: PROJECTS_PREFIX });
+  const [files] = await storage.bucket(BUCKET).getFiles({ prefix: PROJECTS_PREFIX, autoPaginate: true });
   const objectNames = files.map((file) => file.name).filter(Boolean);
   return normalizeProjectGroups(objectNames);
 }
