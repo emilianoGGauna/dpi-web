@@ -84,7 +84,7 @@ export default function ProjectsSection({ accentColor = "#C0392B" }) {
             {filteredProjects.map((p) => (
               <button key={p.id} type="button" onClick={() => { setSelectedProject(p); setActiveImageIdx(0); }} className="text-left rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10 bg-white dark:bg-[#101114] shadow-sm hover:shadow-lg transition">
                 <div className="h-56">
-                  <ImageWithFallback src={p.images[0]?.url} alt={p.title} className="w-full h-full object-cover" />
+                  <ImageWithFallback src={p.coverImageUrl || p.images?.[0]?.url} alt={p.title} className="w-full h-full object-cover" />
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold text-gray-900 dark:text-white">{p.title}</h3>
