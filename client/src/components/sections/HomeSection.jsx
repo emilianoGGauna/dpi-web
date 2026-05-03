@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Headset, Briefcase, ChevronLeft, ChevronRight } from "lucide-react";
 import ImageWithFallback from "../ui/ImageWithFallback";
+import { fetchProjects } from "../../lib/projects";
 
 /* -------------------- helpers -------------------- */
 function hexToRgb(hex) {
@@ -36,10 +37,6 @@ function shuffleCopy(arr) {
   return a;
 }
 
-function pickRandom(arr) {
-  if (!Array.isArray(arr) || !arr.length) return null;
-  return arr[Math.floor(Math.random() * arr.length)];
-}
 
 /* Swipe (sin preventDefault / sin warning passive) */
 function useSwipe({ onLeft, onRight, disabled }) {
@@ -97,13 +94,11 @@ export default function HomeSection({
   autoplayMs = 5000,
 }) {
   const IMG_API = (import.meta.env.VITE_IMAGES_API_BASE || "").replace(/\/$/, "");
-  const PROJECT_LIST_URL = `${IMG_API}/api/projects`;
 
   const reducedMotion = usePrefersReducedMotion();
 
   const [projects, setProjects] = useState([]);
   const [activeIdx, setActiveIdx] = useState(0);
-  const [coverByProjectId, setCoverByProjectId] = useState({}); // { [id]: {id,url} }
 
   const [status, setStatus] = useState("loading");
   const [errorMsg, setErrorMsg] = useState("");
@@ -141,37 +136,11 @@ export default function HomeSection({
       setErrorMsg("");
 
       try {
-        const res = await fetch(PROJECT_LIST_URL, {
-          signal: controller.signal,
-          cache: "no-store",
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const normalized = await fetchProjects(IMG_API, { signal: controller.signal });
+        if (!normalized.length) throw new Error("No hay proyectos válidos (sin images).");
 
-        const data = await res.json();
-        if (!Array.isArray(data)) throw new Error("Se esperaba un arreglo de proyectos.");
+        const selected = shuffleCopy(normalized).slice(0, Math.max(3, Number(maxProjects) || 10));
 
-        const cleaned = data
-          .filter(Boolean)
-          .map((p, idx) => {
-            const id = p?.id ?? idx + 1;
-            const title = String(p?.title || `Proyecto ${idx + 1}`).trim();
-            const images = Array.isArray(p?.images) ? p.images.filter((x) => x?.url) : [];
-            return { id, title, images };
-          })
-          .filter((p) => p.title && p.images.length);
-
-        if (!cleaned.length) throw new Error("No hay proyectos válidos (sin images).");
-
-        const selected = shuffleCopy(cleaned).slice(0, Math.max(3, Number(maxProjects) || 10));
-
-        // 1 imagen random POR proyecto (estable mientras dura la sesión)
-        const covers = {};
-        for (const p of selected) {
-          const chosen = pickRandom(p.images);
-          if (chosen) covers[p.id] = chosen;
-        }
-
-        setCoverByProjectId(covers);
         setProjects(selected);
         setActiveIdx(0);
         setStatus("ready");
@@ -185,11 +154,13 @@ export default function HomeSection({
 
     load();
     return () => controller.abort();
-  }, [IMG_API, PROJECT_LIST_URL, maxProjects]);
+  }, [IMG_API, maxProjects]);
 
   const activeProject = projects[activeIdx] || null;
-  const activeCover = activeProject ? coverByProjectId[activeProject.id] : null;
-  const activeUrl = activeCover?.url || "";
+  const activeUrl =
+    activeProject?.coverImageUrl ||
+    activeProject?.images?.[0]?.url ||
+    "";
 
   const next = () => {
     if (!projects.length) return;
@@ -232,11 +203,11 @@ export default function HomeSection({
     if (status !== "ready" || projects.length < 2) return;
     const nextIdx = (activeIdx + 1) % projects.length;
     const nextProj = projects[nextIdx];
-    const nextUrl = nextProj ? coverByProjectId[nextProj.id]?.url : "";
+    const nextUrl = nextProj?.coverImageUrl || nextProj?.images?.[0]?.url || "";
     if (!nextUrl) return;
     const img = new Image();
     img.src = nextUrl;
-  }, [activeIdx, projects, coverByProjectId, status]);
+  }, [activeIdx, projects, status]);
 
   /* -------------------- Fade between images -------------------- */
   const [currUrl, setCurrUrl] = useState("");
@@ -359,18 +330,6 @@ export default function HomeSection({
                 )}
 
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-                {/* Title tag */}
-                {status === "ready" && activeProject?.title && (
-                  <div className="absolute bottom-3 left-3 right-3">
-                    <div className="inline-flex items-center gap-2 rounded-xl px-3 py-2 bg-black/35 border border-white/10 backdrop-blur-md">
-                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: accentColor }} />
-                      <span className="text-white font-semibold text-sm sm:text-base">
-                        {activeProject.title}
-                      </span>
-                    </div>
-                  </div>
-                )}
 
                 {/* Arrows */}
                 {status === "ready" && projects.length > 1 && (
