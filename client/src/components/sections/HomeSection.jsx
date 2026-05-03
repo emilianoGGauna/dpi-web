@@ -156,11 +156,11 @@ export default function HomeSection({
     return () => controller.abort();
   }, [IMG_API, maxProjects]);
 
+  const getProjectImageUrl = (project) =>
+    project?.coverImageUrl || project?.images?.[0]?.url || "";
+
   const activeProject = projects[activeIdx] || null;
-  const activeUrl =
-    activeProject?.coverImageUrl ||
-    activeProject?.images?.[0]?.url ||
-    "";
+  const activeUrl = getProjectImageUrl(activeProject);
 
   const next = () => {
     if (!projects.length) return;
@@ -203,7 +203,7 @@ export default function HomeSection({
     if (status !== "ready" || projects.length < 2) return;
     const nextIdx = (activeIdx + 1) % projects.length;
     const nextProj = projects[nextIdx];
-    const nextUrl = nextProj?.coverImageUrl || nextProj?.images?.[0]?.url || "";
+    const nextUrl = getProjectImageUrl(nextProj);
     if (!nextUrl) return;
     const img = new Image();
     img.src = nextUrl;
@@ -320,7 +320,34 @@ export default function HomeSection({
               aria-label="Carrusel de proyectos (desliza izquierda o derecha)"
             >
               <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] bg-black/25">
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                {status === "ready" && (currUrl || prevUrl) ? (
+                  <>
+                    {prevUrl ? (
+                      <ImageWithFallback
+                        src={prevUrl}
+                        alt=""
+                        className="absolute inset-0 w-full h-full object-cover opacity-100"
+                      />
+                    ) : null}
+
+                    {currUrl ? (
+                      <ImageWithFallback
+                        src={currUrl}
+                        alt={activeProject?.title || "Proyecto"}
+                        className={[
+                          "absolute inset-0 w-full h-full object-cover",
+                          reducedMotion ? "opacity-100" : entered ? "opacity-100" : "opacity-0",
+                          reducedMotion ? "" : "transition-opacity duration-700",
+                        ].join(" ")}
+                        loading="eager"
+                      />
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="absolute inset-0 bg-black/40" />
+                )}
+
+                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
 
                 {status === "ready" && activeProject?.title && (
                   <div className="absolute left-4 bottom-4 right-4">
@@ -389,6 +416,53 @@ export default function HomeSection({
                 </div>
               )}
             </div>
+            {status === "ready" && projects.length > 0 && (
+              <div className="mt-5 hidden lg:block">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-white/85 font-semibold">Proyectos</div>
+                  <div className="text-white/60 text-xs sm:text-sm">Click para cambiar</div>
+                </div>
+
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {projects.slice(0, 4).map((p, i) => {
+                    const thumbUrl = getProjectImageUrl(p);
+                    const isActive = i === activeIdx;
+
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveIdx(i);
+                          pauseFor(Math.max(1500, autoplayMs + 600));
+                        }}
+                        aria-pressed={isActive}
+                        className={[
+                          "snap-start flex-none w-[30%] xl:w-[24%]",
+                          "rounded-2xl overflow-hidden border transition shadow-lg",
+                          isActive ? "border-white/30 ring-2 ring-white/20" : "border-white/10 hover:border-white/20",
+                          "bg-white/5 backdrop-blur-md",
+                        ].join(" ")}
+                      >
+                        <div className="relative w-full aspect-[4/3]">
+                          <ImageWithFallback
+                            src={thumbUrl}
+                            alt={p.title}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+                          <div className="absolute bottom-0 left-0 right-0 p-3">
+                            <div className="text-left text-white font-semibold text-sm leading-snug">
+                              {p.title}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
           </div>
 
