@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
-    "test:image": "node test/download_image.mjs"
+    "test:image": "node test/download_image.mjs",
+    "variants": "node scripts/generate-variants.mjs"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.15.2",

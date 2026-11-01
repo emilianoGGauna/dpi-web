@@ -5,6 +5,7 @@ import sharp from "sharp";
 import { z } from "zod";
 import crypto from "node:crypto";
 import { pipeline } from "node:stream/promises";
+import { VARIANT_WIDTHS, variantKey } from "../lib/variants.js";
 
 const router = Router();
 const storage = new Storage();
@@ -38,7 +39,8 @@ function safeObjectName(object) {
 function pickFormat(req, requestedFormat) {
   if (requestedFormat) return requestedFormat;
   const accept = (req.get("accept") || "").toLowerCase();
-  if (accept.includes("image/avif")) return "avif";
+  // AVIF is only used when explicitly requested: encoding it on Cloud Run (1 vCPU)
+  // takes 5-20s per image, while WebP takes ~0.5s and is usually smaller.
   if (accept.includes("image/webp")) return "webp";
   return "jpeg";
 }
@@ -164,6 +166,15 @@ router.get("/", async (req, res) => {
   const format = pickFormat(req, parsed.data.format);
   const originalFile = storage.bucket(bucketOriginal).file(object);
 
+  // Pre-generated WebP (npm run variants) is looked up alongside the original's metadata
+  const variantFile =
+    format === "webp" && VARIANT_WIDTHS.includes(w)
+      ? storage.bucket(bucketOriginal).file(variantKey(object, w))
+      : null;
+  const variantMetaPromise = variantFile
+    ? variantFile.getMetadata().then(([meta]) => meta, () => null)
+    : Promise.resolve(null);
+
   try {
     let origMeta;
     try {
@@ -174,6 +185,15 @@ router.get("/", async (req, res) => {
     }
 
     const generation = origMeta?.generation || "0";
+
+    const variantMeta = await variantMetaPromise;
+    if (variantMeta && variantMeta.metadata?.sourceGeneration === String(generation)) {
+      const etag = variantMeta.md5Hash ? `"${variantMeta.md5Hash}"` : undefined;
+      if (handleConditionalGet(req, res, { etag, lastModified: variantMeta.updated })) return;
+      setCommonHeaders(res, { ttlSeconds, format });
+      res.setHeader("X-DPI-Variant", "hit");
+      return await pipeline(variantFile.createReadStream(), res);
+    }
 
     if (bucketCache) {
       const cacheKey = makeCacheKey({ object, generation, w, q, format });
